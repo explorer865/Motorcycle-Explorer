@@ -1,1084 +1,1056 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>SG Explorer PWA - Road Progress Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>SG Explorer PWA</title>
+  <meta name="description" content="Track your Singapore road exploration by motorcycle using SLA OneMap: live GPS, road-snapped routes and cumulative SG road coverage." />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="SG Explorer" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="apple-touch-icon" id="appleIcon" href="" />
+  <link rel="icon" id="favIcon" href="" />
 
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 
-    <!-- Leaflet 1.9.4 CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
 
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Inline PWA manifest + generated icons -->
+  <script>
+    (function () {
+      function makeIcon(size) {
+        var c = document.createElement('canvas');
+        c.width = c.height = size;
+        var x = c.getContext('2d');
+        var s = size / 512;
+        var g = x.createLinearGradient(0, 0, size, size);
+        g.addColorStop(0, '#1e293b'); g.addColorStop(1, '#0f172a');
+        x.fillStyle = g; x.fillRect(0, 0, size, size);
+        x.lineCap = 'round'; x.lineJoin = 'round';
+        x.shadowColor = '#fbbf24'; x.shadowBlur = 40 * s;
+        x.strokeStyle = '#fbbf24'; x.lineWidth = 34 * s;
+        x.beginPath();
+        x.moveTo(96 * s, 380 * s);
+        x.bezierCurveTo(170 * s, 250 * s, 250 * s, 410 * s, 320 * s, 270 * s);
+        x.bezierCurveTo(360 * s, 190 * s, 390 * s, 160 * s, 420 * s, 130 * s);
+        x.stroke();
+        x.shadowBlur = 0;
+        x.fillStyle = '#34d399';
+        x.beginPath(); x.arc(96 * s, 380 * s, 34 * s, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#fff';
+        x.beginPath(); x.arc(420 * s, 130 * s, 30 * s, 0, Math.PI * 2); x.fill();
+        return c.toDataURL('image/png');
+      }
+      try {
+        var i192 = makeIcon(192), i512 = makeIcon(512), i180 = makeIcon(180);
+        document.getElementById('appleIcon').href = i180;
+        document.getElementById('favIcon').href = i192;
+        var base = location.href.split('#')[0].split('?')[0];
+        var scope = base.substring(0, base.lastIndexOf('/') + 1);
+        var manifest = {
+          name: 'SG Explorer PWA',
+          short_name: 'SG Explorer',
+          description: 'Track Singapore road exploration and coverage with SLA OneMap.',
+          start_url: base,
+          scope: scope,
+          display: 'standalone',
+          orientation: 'any',
+          background_color: '#0f172a',
+          theme_color: '#0f172a',
+          icons: [
+            { src: i192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+            { src: i512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          ]
+        };
+        var link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+        document.head.appendChild(link);
+      } catch (e) {}
+    })();
+  </script>
 
-    <style>
-        /* Explicit full-viewport sizing to prevent 0px height collapse on iOS Safari */
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            height: 100dvh;
-            overflow: hidden;
-            background-color: #0b0f19;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
+  <style>
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+      --app-h: 100vh;
+      --bar-h: 88px;
+    }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%;
+      height: 100%;
+      height: var(--app-h);
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+    }
+    body { position: fixed; inset: 0; }
 
-        /* Full-screen Map Container */
-        #map {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
-            z-index: 1;
-            background-color: #0b0f19;
-        }
+    #map {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%;
+      height: 100vh;
+      height: var(--app-h);
+      height: 100dvh;
+      z-index: 0;
+      background: #0f172a;
+      touch-action: none;
+    }
+    .leaflet-container { font-family: inherit; background: #0f172a; }
+    .leaflet-bottom { bottom: calc(var(--bar-h) + var(--sab) + 8px); }
+    .leaflet-control-attribution {
+      background: rgba(15, 23, 42, .78) !important;
+      color: #94a3b8 !important;
+      font-size: 9px !important;
+      border-radius: 6px 0 0 6px;
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .leaflet-control-attribution a { color: #fbbf24 !important; }
 
-        /* Safe area padding helpers for iPhone notch & home bar */
-        .pt-safe-top {
-            padding-top: max(12px, env(safe-area-inset-top));
-        }
-        .pb-safe-bottom {
-            padding-bottom: max(16px, env(safe-area-inset-bottom));
-        }
+    /* Glowing ridden roads */
+    .leaflet-rides-pane svg { filter: drop-shadow(0 0 4px rgba(251, 191, 36, .9)); }
+    .leaflet-live-pane svg { filter: drop-shadow(0 0 4px rgba(52, 211, 153, .85)); }
 
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.85; }
-            100% { transform: scale(2.4); opacity: 0; }
-        }
-        .gps-pulse {
-            animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-    </style>
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background: #1e293b; color: #e2e8f0;
+      border: 1px solid rgba(71, 85, 105, .6);
+      box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    }
+    .leaflet-popup-content { margin: 10px 14px; font-size: 13px; line-height: 1.4; }
+    .leaflet-container a.leaflet-popup-close-button { color: #94a3b8; }
+
+    .user-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #fbbf24; border: 3px solid #fff;
+      box-shadow: 0 0 0 0 rgba(251, 191, 36, .7);
+      animation: pulse 1.8s infinite;
+    }
+    .user-dot.sim { background: #34d399; box-shadow: 0 0 0 0 rgba(52, 211, 153, .7); animation-name: pulseG; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(251,191,36,.7);} 70% { box-shadow: 0 0 0 18px rgba(251,191,36,0);} 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0);} }
+    @keyframes pulseG { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.7);} 70% { box-shadow: 0 0 0 18px rgba(52,211,153,0);} 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0);} }
+
+    .glass {
+      background: linear-gradient(180deg, rgba(30, 41, 59, .88), rgba(15, 23, 42, .9));
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border: 1px solid rgba(71, 85, 105, .55);
+      box-shadow: 0 12px 40px rgba(2, 6, 23, .55), inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .num { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .glow-amber { color: #fbbf24; text-shadow: 0 0 14px rgba(251, 191, 36, .55); }
+    .glow-emerald { color: #34d399; text-shadow: 0 0 14px rgba(52, 211, 153, .5); }
+
+    .act {
+      touch-action: manipulation;
+      user-select: none; -webkit-user-select: none;
+      transition: transform .12s ease, background-color .2s ease, box-shadow .2s ease, opacity .2s ease, border-color .2s;
+      border: 1px solid rgba(71, 85, 105, .6);
+      background: rgba(30, 41, 59, .9);
+    }
+    .act:active:not(:disabled) { transform: scale(.94); }
+    .act:disabled { opacity: .38; cursor: not-allowed; }
+    .act-record { background: linear-gradient(180deg, #fbbf24, #f59e0b); color: #1c1917; border-color: #fcd34d; box-shadow: 0 0 24px rgba(251,191,36,.35); }
+    .act-record[data-state="on"] { background: linear-gradient(180deg, #f43f5e, #e11d48); color: #fff; border-color: #fb7185; box-shadow: 0 0 26px rgba(244,63,94,.5); animation: recGlow 1.6s ease-in-out infinite; }
+    .act-sim[data-state="on"] { background: linear-gradient(180deg, #10b981, #059669); color: #fff; border-color: #6ee7b7; box-shadow: 0 0 24px rgba(16,185,129,.45); }
+    .act-sim { color: #6ee7b7; }
+    .act-reset { color: #fda4af; }
+    @keyframes recGlow { 50% { box-shadow: 0 0 36px rgba(244,63,94,.75); } }
+
+    .fab {
+      width: 46px; height: 46px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      color: #e2e8f0;
+    }
+    .fab[data-active="true"] { color: #fbbf24; border-color: rgba(251,191,36,.75); box-shadow: 0 0 18px rgba(251,191,36,.25); }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px #34d399; }
+    .status-dot.red { background: #f43f5e; box-shadow: 0 0 10px #f43f5e; animation: blink 1s steps(2) infinite; }
+    .status-dot.amber { background: #fbbf24; box-shadow: 0 0 10px #fbbf24; animation: blink 1.4s ease-in-out infinite; }
+    .status-dot.slate { background: #64748b; box-shadow: none; }
+    @keyframes blink { 50% { opacity: .35; } }
+
+    .progress-track { background: rgba(51, 65, 85, .7); }
+    .progress-fill {
+      background: linear-gradient(90deg, #34d399, #fbbf24);
+      box-shadow: 0 0 12px rgba(251, 191, 36, .6);
+      transition: width .6s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .spinner { width: 44px; height: 44px; border-radius: 50%; border: 3px solid rgba(251,191,36,.2); border-top-color: #fbbf24; animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast { animation: toastIn .25s cubic-bezier(.2,.8,.2,1); }
+    .toast.out { animation: toastOut .25s ease forwards; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(-8px) scale(.98); } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.98); } }
+
+    .sheet-enter { animation: sheetIn .28s cubic-bezier(.2,.8,.2,1); }
+    @keyframes sheetIn { from { opacity: 0; transform: translateY(24px) scale(.98); } }
+
+    .hidden-i { display: none !important; }
+  </style>
 </head>
 <body>
 
-    <!-- Full-Viewport Map Canvas -->
-    <div id="map"></div>
+  <!-- Map -->
+  <div id="map" aria-label="OneMap Singapore"></div>
 
-    <!-- Floating Mobile UI Overlay -->
-    <div class="fixed inset-0 z-10 flex flex-col justify-between pointer-events-none px-3.5 pt-safe-top pb-safe-bottom">
-
-        <!-- Top Floating Header & Map Controls -->
-        <div class="flex flex-col gap-2 pointer-events-none">
-            <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 shadow-2xl flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-                        <i class="fa-solid fa-motorcycle text-lg"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h1 class="text-white font-bold text-sm tracking-tight">SG Explorer PWA</h1>
-                            <span id="status-badge" class="text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                                Saved
-                            </span>
-                        </div>
-                        <p id="subtitle-text" class="text-slate-400 text-[11px] mt-0.5">Open-Source Map • Dark Roads</p>
-                    </div>
-                </div>
-
-                <!-- Right Header Action Buttons -->
-                <div class="flex items-center gap-1.5">
-                    <button id="api-key-btn" onclick="openApiKeyModal()" title="Set Google Maps API Key" class="h-10 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition">
-                        <i class="fa-solid fa-key text-amber-400"></i>
-                        <span id="api-key-label">API Key</span>
-                    </button>
-                    <button id="layer-toggle-btn" onclick="toggleMapStyle()" title="Switch Map Style" class="h-10 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition">
-                        <i class="fa-solid fa-layer-group text-amber-400"></i>
-                        <span id="layer-label">Dark</span>
-                    </button>
-                    <button onclick="recenterMap()" title="Recenter Map" class="w-10 h-10 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center justify-center active:scale-95 transition">
-                        <i class="fa-solid fa-crosshairs text-sm"></i>
-                    </button>
-                </div>
+  <!-- Top HUD -->
+  <header id="hud" class="fixed top-0 left-0 right-0 z-[1000] pointer-events-none"
+          style="padding: calc(var(--sat) + 10px) calc(var(--sar) + 10px) 0 calc(var(--sal) + 10px);">
+    <div class="glass pointer-events-auto mx-auto max-w-xl rounded-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-3.5 pt-3 pb-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 shrink-0 rounded-xl bg-amber-400/15 border border-amber-400/40 flex items-center justify-center shadow-[0_0_18px_rgba(251,191,36,.25)]">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 19c3-5 6 1 9-4s4-7 7-9" /><circle cx="4" cy="19" r="1.6" fill="currentColor" /><circle cx="20" cy="6" r="1.6" fill="currentColor" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h1 class="font-display font-bold text-[15px] leading-tight tracking-tight text-slate-50 truncate">SG Explorer</h1>
+              <span class="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-400/30">SLA OneMap</span>
             </div>
-
-            <!-- Legend Pill -->
-            <div class="flex justify-end pointer-events-none">
-                <div class="pointer-events-auto bg-slate-900/85 backdrop-blur-md border border-slate-700/60 px-3 py-1 rounded-full text-[11px] font-medium text-slate-200 flex items-center gap-2 shadow-lg">
-                    <span class="w-3.5 h-1.5 bg-amber-400 rounded-full inline-block shadow-[0_0_8px_#fbbf24]"></span>
-                    <span>Ridden Roads</span>
-                </div>
-            </div>
+            <p id="subline" class="text-[11px] text-slate-400 leading-tight truncate">0 rides logged</p>
+          </div>
         </div>
-
-        <!-- Bottom Floating Telemetry HUD & Action Controls -->
-        <div class="flex flex-col gap-2.5 pointer-events-none">
-
-            <!-- 3-Column Cumulative Telemetry Cards -->
-            <div class="pointer-events-auto grid grid-cols-3 gap-2">
-                <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 text-center shadow-xl">
-                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">SG Coverage</span>
-                    <span id="stat-coverage" class="text-lg font-extrabold text-amber-400 mt-0.5 block">0.00%</span>
-                </div>
-                <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 text-center shadow-xl">
-                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Unique Dist</span>
-                    <span id="stat-distance" class="text-lg font-extrabold text-amber-400 mt-0.5 block">0.00 km</span>
-                </div>
-                <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 text-center shadow-xl">
-                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Speed</span>
-                    <span id="stat-speed" class="text-lg font-extrabold text-emerald-400 mt-0.5 block">0 km/h</span>
-                </div>
-            </div>
-
-            <!-- Action Controls Row -->
-            <div class="pointer-events-auto flex items-center gap-2">
-                <button id="record-btn" onclick="toggleGPSRecording()" class="flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-white shadow-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-red-400/30">
-                    <span id="record-dot" class="w-2.5 h-2.5 rounded-full bg-white"></span>
-                    <span id="record-text">Record Ride</span>
-                </button>
-
-                <button id="sim-btn" onclick="toggleGPSSimulation()" class="flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-amber-300 shadow-xl bg-slate-900/95 hover:bg-slate-800 border border-slate-700 active:scale-[0.98] transition flex items-center justify-center gap-2">
-                    <i id="sim-icon" class="fa-solid fa-play text-xs"></i>
-                    <span id="sim-text">Simulate</span>
-                </button>
-
-                <button onclick="openResetModal()" title="Clear Saved Progress" class="w-12 h-12 rounded-2xl bg-slate-900/95 hover:bg-red-950/80 border border-slate-700 hover:border-red-500/50 text-slate-300 hover:text-red-400 flex items-center justify-center active:scale-95 transition shadow-xl shrink-0">
-                    <i class="fa-solid fa-trash-can text-sm"></i>
-                </button>
-            </div>
+        <div id="statusPill" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/90 border border-slate-700 text-[11px] font-semibold tracking-wide uppercase text-slate-300 shrink-0">
+          <span id="statusDot" class="status-dot"></span><span id="statusText">Ready</span>
         </div>
+      </div>
+
+      <div class="grid grid-cols-3 divide-x divide-slate-700/70 border-t border-slate-700/60">
+        <div class="px-2 py-2.5 text-center">
+          <div class="text-[10px] font-semibold uppercase tracking-[.12em] text-slate-400">SG Coverage</div>
+          <div class="num font-bold text-[22px] leading-7 glow-amber"><span id="covVal">0.00</span><span class="text-[13px] text-amber-300/80">%</span></div>
+          <div class="num text-[10px] text-slate-500"><span id="covKm">0.0</span> / 3,425 km</div>
+        </div>
+        <div class="px-2 py-2.5 text-center">
+          <div class="text-[10px] font-semibold uppercase tracking-[.12em] text-slate-400">Total Dist</div>
+          <div class="num font-bold text-[22px] leading-7 text-slate-50"><span id="distVal">0.00</span><span class="text-[13px] text-slate-400"> km</span></div>
+          <div class="num text-[10px] text-slate-500" id="distSub">all rides</div>
+        </div>
+        <div class="px-2 py-2.5 text-center">
+          <div class="text-[10px] font-semibold uppercase tracking-[.12em] text-slate-400">Speed</div>
+          <div class="num font-bold text-[22px] leading-7 glow-emerald"><span id="spdVal">0</span><span class="text-[13px] text-emerald-300/80"> km/h</span></div>
+          <div class="num text-[10px] text-slate-500" id="spdSub">idle</div>
+        </div>
+      </div>
+      <div class="progress-track h-1 w-full">
+        <div id="covBar" class="progress-fill h-1" style="width:0%"></div>
+      </div>
     </div>
 
-    <!-- Custom In-App Toast Banner -->
-    <div id="toast-banner" class="fixed top-24 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 border border-slate-700 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2 whitespace-nowrap">
-        <i id="toast-icon" class="fa-solid fa-circle-info text-amber-400"></i>
-        <span id="toast-msg">Status update</span>
+    <!-- Toasts -->
+    <div id="toasts" class="mx-auto max-w-xl mt-2 flex flex-col gap-2 items-center"></div>
+  </header>
+
+  <!-- Floating map controls -->
+  <div id="fabs" class="fixed z-[1000] flex flex-col gap-2"
+       style="right: calc(var(--sar) + 12px); bottom: calc(var(--bar-h) + var(--sab) + 34px);">
+    <button id="btnLandLot" class="act fab glass" aria-label="Toggle SLA LandLot Cadastral Overlay" title="SLA LandLot Overlay" data-active="false">
+      <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    </button>
+    <button id="btnLayers" class="act fab glass" aria-label="Switch OneMap Style" title="OneMap Theme (Night / Default / Grey / Original)">
+      <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
+    </button>
+    <button id="btnFit" class="act fab glass" aria-label="Show all rides" title="Show all rides">
+      <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+    <button id="btnLocate" class="act fab glass" aria-label="Center on my location" title="My location" data-active="false">
+      <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>
+    </button>
+  </div>
+
+  <!-- Live ride chip -->
+  <div id="liveChip" class="hidden-i fixed z-[1000] glass rounded-xl px-3 py-2 flex items-center gap-3"
+       style="left: calc(var(--sal) + 12px); bottom: calc(var(--bar-h) + var(--sab) + 34px);">
+    <div>
+      <div class="text-[9px] uppercase tracking-[.14em] text-slate-400 font-semibold" id="liveLabel">Ride</div>
+      <div class="num text-sm font-bold text-slate-50" id="liveTime">00:00</div>
     </div>
-
-    <!-- Interrupted Ride Recovery Modal (Tab Closed / Reloaded) -->
-    <div id="recovery-modal" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-5">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
-            <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-3 text-xl">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-            </div>
-            <h2 class="text-white font-bold text-base">Unfinished Ride Recovered</h2>
-            <p class="text-slate-400 text-xs mt-1.5 leading-relaxed">
-                Your previous tab was closed while recording a <span id="recovery-dist-preview" class="text-amber-400 font-bold">0.00 km</span> ride (<span id="recovery-pts-preview" class="text-slate-200 font-semibold">0</span> GPS points). Would you like to resume it or save it to your progress?
-            </p>
-            <div class="grid grid-cols-2 gap-2.5 mt-5">
-                <button onclick="resumeInterruptedRide()" class="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg">
-                    Resume Ride
-                </button>
-                <button onclick="saveInterruptedRide()" class="py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition shadow-lg">
-                    Snap &amp; Save
-                </button>
-            </div>
-            <button onclick="discardInterruptedRide()" class="mt-3 w-full py-2 text-[11px] text-red-400 hover:text-red-300 font-medium">
-                Discard Unfinished Ride
-            </button>
-        </div>
+    <div class="w-px h-7 bg-slate-700"></div>
+    <div>
+      <div class="text-[9px] uppercase tracking-[.14em] text-slate-400 font-semibold">This ride</div>
+      <div class="num text-sm font-bold glow-amber"><span id="liveKm">0.00</span> km</div>
     </div>
-
-    <!-- Custom In-App Google Maps API Key Modal -->
-    <div id="apikey-modal" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-5">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
-            <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-3 text-xl">
-                <i class="fa-solid fa-key"></i>
-            </div>
-            <h2 class="text-white font-bold text-base text-center">Google Maps API Key</h2>
-            <p class="text-slate-400 text-xs mt-1.5 leading-relaxed text-center">
-                Paste your Google Maps JavaScript API key below to switch from the open-source fallback to Google Maps &amp; Roads snapping.
-            </p>
-            <input id="apikey-input" type="text" placeholder="AIzaSy..." class="mt-4 w-full px-3.5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-amber-400" />
-            <div class="grid grid-cols-2 gap-2.5 mt-4">
-                <button onclick="closeApiKeyModal()" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
-                    Cancel
-                </button>
-                <button onclick="saveApiKey()" class="py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition shadow-lg">
-                    Save &amp; Load
-                </button>
-            </div>
-            <button id="remove-key-btn" onclick="clearApiKey()" class="hidden mt-3 w-full py-2 text-[11px] text-red-400 hover:text-red-300 font-medium">
-                Remove Saved Key (Use Open-Source)
-            </button>
-        </div>
+    <div class="w-px h-7 bg-slate-700"></div>
+    <div>
+      <div class="text-[9px] uppercase tracking-[.14em] text-slate-400 font-semibold">Points</div>
+      <div class="num text-sm font-bold text-emerald-300" id="livePts">0</div>
     </div>
+  </div>
 
-    <!-- Custom In-App Reset Confirmation Modal -->
-    <div id="reset-modal" class="hidden fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-5">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
-            <div class="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto mb-3 text-xl">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <h2 class="text-white font-bold text-base">Reset All Road Progress?</h2>
-            <p class="text-slate-400 text-xs mt-1.5 leading-relaxed">
-                This will permanently clear your <span id="modal-pct-preview" class="text-amber-400 font-bold">0.00%</span> Singapore coverage and delete all saved ride routes from this device.
-            </p>
-            <div class="grid grid-cols-2 gap-2.5 mt-5">
-                <button onclick="closeResetModal()" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
-                    Cancel
-                </button>
-                <button onclick="confirmClearAllData()" class="py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition shadow-lg">
-                    Yes, Reset
-                </button>
-            </div>
-        </div>
+  <!-- Bottom action bar -->
+  <nav id="actionbar" class="fixed bottom-0 left-0 right-0 z-[1000] pointer-events-none"
+       style="padding: 0 calc(var(--sar) + 10px) calc(var(--sab) + 10px) calc(var(--sal) + 10px);">
+    <div class="glass pointer-events-auto mx-auto max-w-xl rounded-2xl p-2 grid grid-cols-[1.35fr_1fr_.8fr] gap-2" id="barInner">
+      <button id="btnRecord" class="act act-record rounded-xl h-[60px] flex items-center justify-center gap-2 font-display font-bold text-[15px]" data-state="off" aria-pressed="false">
+        <span id="recIcon" class="inline-flex"></span><span id="recText">Record Ride</span>
+      </button>
+      <button id="btnSim" class="act act-sim rounded-xl h-[60px] flex items-center justify-center gap-2 font-display font-semibold text-[14px]" data-state="off" aria-pressed="false">
+        <span id="simIcon" class="inline-flex"></span><span id="simText">Simulate</span>
+      </button>
+      <button id="btnReset" class="act act-reset rounded-xl h-[60px] flex flex-col items-center justify-center font-display font-semibold text-[11px]" aria-label="Clear all data">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5"/></svg>
+        Reset
+      </button>
     </div>
+  </nav>
 
-    <!-- Leaflet 1.9.4 JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- Snapping overlay -->
+  <div id="snapOverlay" class="hidden-i fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/55 backdrop-blur-sm">
+    <div class="glass rounded-2xl px-6 py-5 flex flex-col items-center gap-3 mx-6 max-w-xs text-center sheet-enter">
+      <div class="spinner"></div>
+      <div class="font-display font-semibold text-slate-50">Snapping to SG roads</div>
+      <div id="snapText" class="text-xs text-slate-400 num">Contacting OSRM…</div>
+    </div>
+  </div>
 
-    <script>
-        // ==========================================
-        // 1. CONSTANTS & PERSISTENT STATE
-        // ==========================================
-        const SG_TOTAL_ROAD_KM = 3425.0; // Total paved road network in Singapore
-        const STORAGE_KEY_RIDES = 'sg_explorer_saved_rides_v5';
-        const STORAGE_KEY_ACTIVE_DRAFT = 'sg_explorer_active_draft_v5';
-        const STORAGE_KEY_STYLE = 'sg_explorer_map_style_v5';
-        const STORAGE_KEY_GMAPS = 'sg_explorer_gmaps_api_key_v5';
-        const CELL_DEG = 0.00025; // ~28m spatial grid for unique road deduplication
-        const SAMPLE_M = 20;
+  <!-- Modal -->
+  <div id="modal" class="hidden-i fixed inset-0 z-[3000] flex items-end sm:items-center justify-center bg-slate-950/70 backdrop-blur-sm"
+       style="padding: 16px calc(var(--sar) + 12px) calc(var(--sab) + 16px) calc(var(--sal) + 12px);" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="glass rounded-2xl w-full max-w-sm p-5 sheet-enter">
+      <h2 id="modalTitle" class="font-display font-bold text-lg text-slate-50"></h2>
+      <p id="modalBody" class="text-sm text-slate-300 mt-2 leading-relaxed"></p>
+      <div class="grid grid-cols-2 gap-2 mt-5">
+        <button id="modalCancel" class="act rounded-xl h-12 font-semibold text-slate-200"></button>
+        <button id="modalOk" class="act rounded-xl h-12 font-bold"></button>
+      </div>
+    </div>
+  </div>
 
-        let savedRides = [];
-        try {
-            savedRides = JSON.parse(localStorage.getItem(STORAGE_KEY_RIDES) || '[]');
-        } catch (err) {
-            savedRides = [];
+  <script>
+  (function () {
+    'use strict';
+
+    /* ================================================================
+       Config
+       ================================================================ */
+    var CFG = {
+      BASELINE_KM: 3425.0,
+      CENTER: [1.3521, 103.8198],
+      ZOOM: 13,
+      OSRM_MATCH: 'https://router.project-osrm.org/match/v1/driving/',
+      CHUNK: 10,
+      CHUNK_DELAY_MS: 1100,
+      STORE_KEY: 'sgx.v1.data',
+      ACTIVE_KEY: 'sgx.v1.active',
+      PREFS_KEY: 'sgx.v3.prefs',
+      CELL_DEG: 0.00025,       // ~28 m coverage grid
+      SAMPLE_M: 20,            // coverage sampling step
+      MIN_STEP_M: 5,           // ignore GPS movement smaller than this
+      MAX_ACC_M: 50,           // ignore fixes worse than this
+      MIN_SAVE_KM: 0.05,
+      SIM_TICK_MS: 250,
+      SIM_SECONDS_PER_TICK: 2
+    };
+
+    var ECP_ROUTE = [
+      [1.29429,103.86595],[1.29519,103.87033],[1.29543,103.87346],[1.29550,103.87587],[1.29561,103.87929],
+      [1.29576,103.88207],[1.29585,103.88459],[1.29576,103.88957],[1.29565,103.89206],[1.29602,103.89435],
+      [1.29706,103.89713],[1.29835,103.90055],[1.29970,103.90419],[1.30054,103.90686],[1.30139,103.90986],
+      [1.30244,103.91346],[1.30342,103.91700],[1.30408,103.91932],[1.30475,103.92166],[1.30566,103.92498],
+      [1.30677,103.92768],[1.30777,103.92990],[1.30838,103.93206],[1.30906,103.93450],[1.30988,103.93734],
+      [1.31157,103.94333],[1.31181,103.94557],[1.31194,103.94971],[1.31257,103.95226],[1.31664,103.96219],
+      [1.31806,103.96565],[1.31930,103.96769],[1.32222,103.97001],[1.32262,103.97029]
+    ];
+
+    // Official Singapore Land Authority (SLA) OneMap Basemaps (No API key required)
+    var ONEMAP_ATTR = '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;display:inline;"/> <a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a> &copy; contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>';
+
+    var TILES = {
+      onemap_night: {
+        name: 'SLA OneMap Night',
+        url: 'https://www.onemap.gov.sg/maps/tiles/Night/{z}/{x}/{y}.png',
+        opts: { detectRetina: true, maxZoom: 19, minZoom: 11, attribution: ONEMAP_ATTR }
+      },
+      onemap_default: {
+        name: 'SLA OneMap Default',
+        url: 'https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png',
+        opts: { detectRetina: true, maxZoom: 19, minZoom: 11, attribution: ONEMAP_ATTR }
+      },
+      onemap_grey: {
+        name: 'SLA OneMap Grey',
+        url: 'https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png',
+        opts: { detectRetina: true, maxZoom: 19, minZoom: 11, attribution: ONEMAP_ATTR }
+      },
+      onemap_original: {
+        name: 'SLA OneMap Original',
+        url: 'https://www.onemap.gov.sg/maps/tiles/Original/{z}/{x}/{y}.png',
+        opts: { detectRetina: true, maxZoom: 19, minZoom: 11, attribution: ONEMAP_ATTR }
+      }
+    };
+    var TILE_ORDER = ['onemap_night', 'onemap_default', 'onemap_grey', 'onemap_original'];
+
+    /* ================================================================
+       Helpers
+       ================================================================ */
+    var $ = function (id) { return document.getElementById(id); };
+    var R_EARTH = 6371008.8;
+    function toRad(d) { return d * Math.PI / 180; }
+    function hav(a, b) {
+      var dLat = toRad(b[0] - a[0]), dLng = toRad(b[1] - a[1]);
+      var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return 2 * R_EARTH * Math.asin(Math.min(1, Math.sqrt(s)));
+    }
+    function pathLenM(pts) { var m = 0; for (var i = 1; i < pts.length; i++) m += hav(pts[i - 1], pts[i]); return m; }
+    function r5(n) { return Math.round(n * 1e5) / 1e5; }
+    function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+    function haptic(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+    function fmtKm(km) { return km < 100 ? km.toFixed(2) : km < 1000 ? km.toFixed(1) : Math.round(km).toLocaleString(); }
+    function fmtPct(p) { return p < 1 ? p.toFixed(3) : p < 10 ? p.toFixed(2) : p.toFixed(1); }
+    function fmtDur(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+      var mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
+      return h ? h + ':' + mm + ':' + ss : mm + ':' + ss;
+    }
+    function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+    function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+    var ICONS = {
+      rec: '<svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg>',
+      stop: '<svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>',
+      play: '<svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>'
+    };
+
+    /* ================================================================
+       Viewport handling
+       ================================================================ */
+    function syncViewport() {
+      var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
+      var bar = $('barInner');
+      if (bar) document.documentElement.style.setProperty('--bar-h', Math.round(bar.offsetHeight) + 'px');
+    }
+    syncViewport();
+
+    /* ================================================================
+       Map & SLA OneMap Layers
+       ================================================================ */
+    var prefs = lsGet(CFG.PREFS_KEY, { tiles: 'onemap_night', landlot: false });
+    if (!TILES[prefs.tiles]) prefs.tiles = 'onemap_night';
+
+    var map = L.map('map', {
+      zoomControl: false,
+      attributionControl: true,
+      preferCanvas: false,
+      worldCopyJump: false,
+      maxBounds: L.latLngBounds([1.12, 103.55], [1.50, 104.12]),
+      maxBoundsViscosity: 0.85,
+      minZoom: 11,
+      maxZoom: 19
+    }).setView(CFG.CENTER, CFG.ZOOM);
+    map.attributionControl.setPrefix(false);
+
+    var tileLayer = null;
+    function setTiles(key) {
+      var t = TILES[key];
+      if (tileLayer) map.removeLayer(tileLayer);
+      tileLayer = L.tileLayer(t.url, Object.assign({ keepBuffer: 4 }, t.opts)).addTo(map);
+      if (landLotLayer && prefs.landlot) landLotLayer.bringToFront();
+      prefs.tiles = key;
+      lsSet(CFG.PREFS_KEY, prefs);
+    }
+
+    // SLA OneMap LandLot Cadastral Overlay (transparent lot boundaries & numbers)
+    var landLotLayer = L.tileLayer('https://www.onemap.gov.sg/maps/tiles/LandLot/{z}/{x}/{y}.png', {
+      detectRetina: true,
+      maxZoom: 19,
+      minZoom: 11,
+      opacity: 0.72,
+      zIndex: 250,
+      attribution: ONEMAP_ATTR
+    });
+
+    function toggleLandLot(forceState) {
+      var nextState = typeof forceState === 'boolean' ? forceState : !prefs.landlot;
+      prefs.landlot = nextState;
+      lsSet(CFG.PREFS_KEY, prefs);
+      $('btnLandLot').dataset.active = nextState ? 'true' : 'false';
+      if (nextState) {
+        landLotLayer.addTo(map);
+        landLotLayer.bringToFront();
+      } else {
+        map.removeLayer(landLotLayer);
+      }
+    }
+
+    setTiles(prefs.tiles);
+    if (prefs.landlot) toggleLandLot(true);
+
+    map.createPane('rides').style.zIndex = 410;
+    map.createPane('live').style.zIndex = 420;
+    var ridesRenderer = L.svg({ pane: 'rides', padding: 0.5 });
+    var liveRenderer = L.svg({ pane: 'live', padding: 0.5 });
+    var ridesLayer = L.layerGroup().addTo(map);
+
+    var liveLine = L.polyline([], { renderer: liveRenderer, color: '#34d399', weight: 4, opacity: 0.95, dashArray: '2 8', lineCap: 'round', interactive: false }).addTo(map);
+    var userMarker = null, accCircle = null;
+
+    function updateUserMarker(lat, lng, acc, isSim) {
+      var ll = [lat, lng];
+      if (!userMarker) {
+        userMarker = L.marker(ll, {
+          icon: L.divIcon({ className: '', html: '<div class="user-dot' + (isSim ? ' sim' : '') + '"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+          interactive: false, keyboard: false, zIndexOffset: 1000
+        }).addTo(map);
+        accCircle = L.circle(ll, { radius: acc || 10, color: '#fbbf24', weight: 1, opacity: 0.4, fillOpacity: 0.08, interactive: false }).addTo(map);
+      } else {
+        userMarker.setLatLng(ll);
+        accCircle.setLatLng(ll).setRadius(acc || 10);
+      }
+      var dot = userMarker.getElement() && userMarker.getElement().firstChild;
+      if (dot) dot.classList.toggle('sim', !!isSim);
+      accCircle.setStyle({ color: isSim ? '#34d399' : '#fbbf24' });
+    }
+    function clearUserMarker() {
+      if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+      if (accCircle) { map.removeLayer(accCircle); accCircle = null; }
+    }
+
+    var resizeT = null;
+    function onViewportChange() {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(function () { syncViewport(); map.invalidateSize({ pan: false }); }, 120);
+    }
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('orientationchange', function () { setTimeout(onViewportChange, 300); });
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', onViewportChange);
+    window.addEventListener('load', function () { syncViewport(); map.invalidateSize(); });
+    setTimeout(function () { map.invalidateSize(); }, 250);
+
+    /* ================================================================
+       Data, persistence & coverage
+       ================================================================ */
+    var data = lsGet(CFG.STORE_KEY, null);
+    if (!data || !Array.isArray(data.rides)) data = { v: 1, rides: [], totalKm: 0 };
+
+    var cells = new Set();
+    var coverageKm = 0;
+
+    function cellKey(lat, lng) { return Math.round(lat / CFG.CELL_DEG) + ':' + Math.round(lng / CFG.CELL_DEG); }
+
+    function coverSeg(seg, set) {
+      var added = 0;
+      for (var i = 1; i < seg.length; i++) {
+        var a = seg[i - 1], b = seg[i];
+        var d = hav(a, b);
+        if (d <= 0 || d > 3000) continue;
+        var n = Math.max(1, Math.ceil(d / CFG.SAMPLE_M)), step = d / n;
+        for (var k = 0; k < n; k++) {
+          var f = (k + 0.5) / n;
+          var key = cellKey(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f);
+          if (!set.has(key)) { set.add(key); added += step; }
         }
+      }
+      return added / 1000;
+    }
 
-        let uniqueDistanceKm = 0;
-        let visitedCells = new Set();
-
-        let currentStyleMode = localStorage.getItem(STORAGE_KEY_STYLE) || 'dark';
-        let googleApiKey = localStorage.getItem(STORAGE_KEY_GMAPS) || '';
-        let usingGoogleMaps = false;
-
-        // Google Maps State
-        let gMap = null;
-        let gSavedPolylines = [];
-        let gActiveOutline = null;
-        let gActivePolyline = null;
-        let gRiderMarker = null;
-
-        // Leaflet Open-Source Map State
-        let lMap = null;
-        let lTileLayer = null;
-        let lRidesGroup = null;
-        let lActiveOutline = null;
-        let lActivePolyline = null;
-        let lRiderMarker = null;
-
-        let isRecording = false;
-        let isSimulating = false;
-        let watchId = null;
-        let simInterval = null;
-        let currentRideCoords = [];
-        let draftStartTimestamp = 0;
-        let lastKnownLatLng = [1.3000, 103.8750]; // Singapore Marina / East Coast
-
-        // ==========================================
-        // 2. TAB-CLOSE CHECKPOINTING & CRASH RECOVERY
-        // ==========================================
-        function persistActiveDraft() {
-            if (!isRecording || currentRideCoords.length === 0) return;
-            try {
-                localStorage.setItem(STORAGE_KEY_ACTIVE_DRAFT, JSON.stringify({
-                    startTime: draftStartTimestamp || Date.now(),
-                    updatedAt: Date.now(),
-                    coords: currentRideCoords
-                }));
-            } catch (e) {
-                console.warn('Could not persist active draft:', e);
-            }
-        }
-
-        function clearActiveDraft() {
-            localStorage.removeItem(STORAGE_KEY_ACTIVE_DRAFT);
-        }
-
-        // Emergency save hooks whenever iOS Safari suspends, hides, or closes the tab
-        window.addEventListener('pagehide', persistActiveDraft);
-        window.addEventListener('beforeunload', (e) => {
-            if (isRecording && currentRideCoords.length > 1) {
-                persistActiveDraft();
-                e.preventDefault();
-                e.returnValue = '';
-            }
+    function recomputeCoverage() {
+      cells = new Set();
+      coverageKm = 0;
+      data.rides.forEach(function (r) {
+        (r.segs || []).forEach(function (s) {
+          coverageKm += coverSeg(s, cells);
         });
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                persistActiveDraft();
-            }
+      });
+    }
+
+    function totalKm() {
+      var sum = 0;
+      data.rides.forEach(function (r) { sum += (r.km || 0); });
+      return sum;
+    }
+
+    function saveData() {
+      data.totalKm = totalKm();
+      lsSet(CFG.STORE_KEY, data);
+    }
+
+    function renderAllRides() {
+      ridesLayer.clearLayers();
+      recomputeCoverage();
+      data.rides.forEach(function (r) {
+        (r.segs || []).forEach(function (seg) {
+          if (seg.length < 2) return;
+          L.polyline(seg, { renderer: ridesRenderer, color: '#f59e0b', weight: 10, opacity: 0.35, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(ridesLayer);
+          var core = L.polyline(seg, { renderer: ridesRenderer, color: '#fde047', weight: 4, opacity: 1.0, lineCap: 'round', lineJoin: 'round' }).addTo(ridesLayer);
+          var dt = r.start ? new Date(r.start).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Saved ride';
+          core.bindPopup('<strong>' + dt + '</strong><br/>Distance: ' + fmtKm(r.km || 0) + ' km');
         });
+      });
+      updateHUD();
+    }
 
-        function checkForInterruptedRide() {
-            try {
-                const rawDraft = localStorage.getItem(STORAGE_KEY_ACTIVE_DRAFT);
-                if (!rawDraft) return;
-                const draft = JSON.parse(rawDraft);
-                if (draft && Array.isArray(draft.coords) && draft.coords.length >= 2) {
-                    const distKm = calculatePolylineKm(draft.coords);
-                    document.getElementById('recovery-dist-preview').innerText = `${distKm.toFixed(2)} km`;
-                    document.getElementById('recovery-pts-preview').innerText = draft.coords.length;
-                    document.getElementById('recovery-modal').classList.remove('hidden');
+    /* ================================================================
+       UI & Toast Helpers
+       ================================================================ */
+    function toast(msg, type, ms) {
+      var wrap = $('toasts');
+      var el = document.createElement('div');
+      var border = type === 'warn' ? 'border-amber-400/50 text-amber-200' : type === 'err' ? 'border-rose-400/50 text-rose-200' : 'border-slate-600/70 text-slate-100';
+      el.className = 'toast glass pointer-events-auto px-3.5 py-2 rounded-full text-xs font-medium border ' + border;
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(function () {
+        el.classList.add('out');
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
+      }, ms || 2600);
+    }
 
-                    // Draw recovered trail immediately on map so user can see it
-                    drawActivePolyline(draft.coords);
-                    const lastPt = draft.coords[draft.coords.length - 1];
-                    updateRiderPosition(lastPt, true);
-                } else {
-                    clearActiveDraft();
-                }
-            } catch (e) {
-                clearActiveDraft();
-            }
+    function confirmModal(opts) {
+      return new Promise(function (resolve) {
+        $('modalTitle').textContent = opts.title || 'Confirm';
+        $('modalBody').textContent = opts.body || '';
+        $('modalCancel').textContent = opts.cancel || 'Cancel';
+        var ok = $('modalOk');
+        ok.textContent = opts.confirm || 'OK';
+        ok.className = 'act rounded-xl h-12 font-bold ' + (opts.danger ? 'bg-rose-600 text-white border-rose-400' : 'bg-amber-400 text-slate-950 border-amber-300');
+        $('modal').classList.remove('hidden-i');
+
+        function cleanup(res) {
+          $('modal').classList.add('hidden-i');
+          $('modalCancel').onclick = null;
+          ok.onclick = null;
+          resolve(res);
         }
+        $('modalCancel').onclick = function () { cleanup(false); };
+        ok.onclick = function () { cleanup(true); };
+      });
+    }
 
-        function resumeInterruptedRide() {
-            try {
-                const draft = JSON.parse(localStorage.getItem(STORAGE_KEY_ACTIVE_DRAFT) || 'null');
-                document.getElementById('recovery-modal').classList.add('hidden');
-                if (draft && Array.isArray(draft.coords)) {
-                    startGPSRecording(draft.coords, draft.startTime);
-                    showToast('Resumed your unfinished ride!');
-                }
-            } catch (e) {
-                clearActiveDraft();
-            }
-        }
+    function setStatus(text, dotClass) {
+      $('statusText').textContent = text;
+      $('statusDot').className = 'status-dot' + (dotClass ? ' ' + dotClass : '');
+    }
 
-        async function saveInterruptedRide() {
-            try {
-                const draft = JSON.parse(localStorage.getItem(STORAGE_KEY_ACTIVE_DRAFT) || 'null');
-                document.getElementById('recovery-modal').classList.add('hidden');
-                clearActiveDraft();
-                clearActivePolyline();
-                if (draft && Array.isArray(draft.coords) && draft.coords.length >= 2) {
-                    showToast('Snapping recovered ride to roads...');
-                    const snapped = await snapToRoads(draft.coords);
-                    savedRides.push(snapped);
-                    localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(savedRides));
-                    renderSavedRides();
-                    showToast('Recovered ride saved!');
-                }
-            } catch (e) {
-                clearActiveDraft();
-            }
-        }
+    function updateHUD(liveNewKm, liveTotalKm, speedKmh) {
+      var cov = coverageKm + (liveNewKm || 0);
+      var tot = totalKm() + (liveTotalKm || 0);
+      var pct = Math.min(100, (cov / CFG.BASELINE_KM) * 100);
 
-        function discardInterruptedRide() {
-            clearActiveDraft();
-            clearActivePolyline();
-            document.getElementById('recovery-modal').classList.add('hidden');
-            showToast('Unfinished ride discarded');
-        }
+      $('covVal').textContent = fmtPct(pct);
+      $('covKm').textContent = cov.toFixed(1);
+      $('covBar').style.width = pct + '%';
+      $('distVal').textContent = fmtKm(tot);
+      $('subline').textContent = data.rides.length + (data.rides.length === 1 ? ' ride logged' : ' rides logged');
 
-        // ==========================================
-        // 3. MAP INITIALIZATION (GOOGLE MAPS + FALLBACK)
-        // ==========================================
-        function bootstrapApp() {
-            recomputeUniqueCoverage();
-            updateStatsUI(0);
-            updateApiKeyButtonUI();
+      if (typeof speedKmh === 'number') {
+        $('spdVal').textContent = Math.round(speedKmh);
+        $('spdSub').textContent = speedKmh > 0 ? 'moving' : 'stopped';
+      } else {
+        $('spdVal').textContent = '0';
+        $('spdSub').textContent = 'idle';
+      }
+    }
 
-            if (googleApiKey) {
-                loadGoogleMapsScript(googleApiKey);
-            } else {
-                initOpenSourceMap();
-            }
+    /* ================================================================
+       OSRM Map-Matching
+       ================================================================ */
+    async function snapToOSRM(pts) {
+      if (!pts || pts.length < 2) return [pts];
+      $('snapOverlay').classList.remove('hidden-i');
+      var segs = [];
+      try {
+        var totalChunks = Math.ceil(pts.length / (CFG.CHUNK - 1));
+        for (var i = 0; i < pts.length - 1; i += (CFG.CHUNK - 1)) {
+          var chunk = pts.slice(i, i + CFG.CHUNK);
+          if (chunk.length < 2) continue;
+          var chunkIdx = Math.floor(i / (CFG.CHUNK - 1)) + 1;
+          $('snapText').textContent = 'Matching segment ' + chunkIdx + ' / ' + totalChunks + '…';
 
-            setTimeout(checkForInterruptedRide, 350);
-        }
+          var coords = chunk.map(function (p) { return r5(p[1]) + ',' + r5(p[0]); }).join(';');
+          var radiuses = chunk.map(function () { return '25'; }).join(';');
+          var url = CFG.OSRM_MATCH + coords + '?geometries=geojson&overview=full&tidy=true&radiuses=' + radiuses;
 
-        function updateApiKeyButtonUI() {
-            const label = document.getElementById('api-key-label');
-            const btn = document.getElementById('api-key-btn');
-            if (googleApiKey) {
-                label.innerText = 'G-Maps';
-                btn.className = 'h-10 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition';
-            } else {
-                label.innerText = 'API Key';
-                btn.className = 'h-10 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition';
-            }
-        }
-
-        function loadGoogleMapsScript(key) {
-            window.gm_authFailure = () => {
-                showToast('Invalid Google Maps key — switching to Open-Source');
-                usingGoogleMaps = false;
-                initOpenSourceMap();
-            };
-
-            window.initGoogleMapCallback = () => {
-                try {
-                    if (lMap) {
-                        lMap.remove();
-                        lMap = null;
-                    }
-                    const lightStyles = [
-                        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-                        { featureType: 'transit', stylers: [{ visibility: 'off' }] }
-                    ];
-                    const darkStyles = [
-                        { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
-                        { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
-                        { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-                        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#334155' }] },
-                        { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#475569' }] },
-                        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-                        { featureType: 'poi', stylers: [{ visibility: 'off' }] }
-                    ];
-
-                    gMap = new google.maps.Map(document.getElementById('map'), {
-                        center: { lat: 1.3350, lng: 103.8450 },
-                        zoom: 12,
-                        disableDefaultUI: true,
-                        mapTypeId: 'roadmap',
-                        styles: currentStyleMode === 'dark' ? darkStyles : lightStyles
-                    });
-
-                    gRiderMarker = new google.maps.Marker({
-                        position: { lat: lastKnownLatLng[0], lng: lastKnownLatLng[1] },
-                        map: gMap,
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 7,
-                            fillColor: '#f59e0b',
-                            fillOpacity: 1,
-                            strokeColor: '#0f172a',
-                            strokeWeight: 2.5
-                        }
-                    });
-
-                    usingGoogleMaps = true;
-                    updateStyleLabels();
-                    renderSavedRides();
-                    showToast('Google Maps loaded');
-                } catch (err) {
-                    usingGoogleMaps = false;
-                    initOpenSourceMap();
-                }
-            };
-
-            const existing = document.getElementById('gmaps-sdk-script');
-            if (existing) existing.remove();
-
-            const script = document.createElement('script');
-            script.id = 'gmaps-sdk-script';
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&callback=initGoogleMapCallback`;
-            script.async = true;
-            script.defer = true;
-            script.onerror = () => {
-                showToast('Failed to load Google Maps — using Open-Source');
-                usingGoogleMaps = false;
-                initOpenSourceMap();
-            };
-            document.head.appendChild(script);
-        }
-
-        function initOpenSourceMap() {
-            usingGoogleMaps = false;
-            if (lMap) {
-                lMap.invalidateSize();
-                return;
-            }
-
-            lMap = L.map('map', {
-                center: [1.3350, 103.8450],
-                zoom: 12,
-                zoomControl: false,
-                attributionControl: false,
-                preferCanvas: true
-            });
-
-            applyLeafletTileStyle(currentStyleMode);
-            lRidesGroup = L.layerGroup().addTo(lMap);
-
-            const riderIcon = L.divIcon({
-                className: 'custom-rider-marker',
-                html: `
-                    <div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
-                        <div class="gps-pulse" style="position:absolute;width:24px;height:24px;border-radius:9999px;background:rgba(245,158,11,0.45);"></div>
-                        <div style="position:relative;width:13px;height:13px;border-radius:9999px;background:#f59e0b;border:2.5px solid #0f172a;"></div>
-                    </div>
-                `,
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
-
-            lRiderMarker = L.marker(lastKnownLatLng, { icon: riderIcon }).addTo(lMap);
-
-            updateStyleLabels();
-            renderSavedRides();
-
-            lMap.invalidateSize();
-            setTimeout(() => lMap && lMap.invalidateSize(), 200);
-            setTimeout(() => lMap && lMap.invalidateSize(), 600);
-        }
-
-        function applyLeafletTileStyle(mode) {
-            if (!lMap) return;
-            if (lTileLayer) lMap.removeLayer(lTileLayer);
-
-            const url = mode === 'dark'
-                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-
-            lTileLayer = L.tileLayer(url, { subdomains: 'abcd', maxZoom: 20 });
-            lTileLayer.on('tileerror', () => {
-                lMap.removeLayer(lTileLayer);
-                lTileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(lMap);
-            });
-            lTileLayer.addTo(lMap);
-        }
-
-        function toggleMapStyle() {
-            currentStyleMode = currentStyleMode === 'dark' ? 'light' : 'dark';
-            localStorage.setItem(STORAGE_KEY_STYLE, currentStyleMode);
-
-            if (usingGoogleMaps && gMap) {
-                const lightStyles = [
-                    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-                    { featureType: 'transit', stylers: [{ visibility: 'off' }] }
-                ];
-                const darkStyles = [
-                    { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
-                    { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
-                    { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-                    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#334155' }] },
-                    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#475569' }] },
-                    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-                    { featureType: 'poi', stylers: [{ visibility: 'off' }] }
-                ];
-                gMap.setOptions({ styles: currentStyleMode === 'dark' ? darkStyles : lightStyles });
-            } else if (lMap) {
-                applyLeafletTileStyle(currentStyleMode);
-            }
-
-            updateStyleLabels();
-            showToast(`Map style: ${currentStyleMode === 'dark' ? 'Dark Roads' : 'Clean Light'}`);
-        }
-
-        function updateStyleLabels() {
-            const isDark = currentStyleMode === 'dark';
-            document.getElementById('layer-label').innerText = isDark ? 'Dark' : 'Light';
-            document.getElementById('subtitle-text').innerText = usingGoogleMaps
-                ? `Google Maps • ${isDark ? 'Night Roads' : 'Day Roads'}`
-                : `Open-Source Map • ${isDark ? 'Dark Roads' : 'Clean Light'}`;
-        }
-
-        // ==========================================
-        // 4. UNIQUE ROAD DEDUPLICATION & GEOMETRY
-        // ==========================================
-        function haversineKm(pt1, pt2) {
-            const R = 6371;
-            const dLat = (pt2[0] - pt1[0]) * Math.PI / 180;
-            const dLon = (pt2[1] - pt1[1]) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(pt1[0] * Math.PI / 180) * Math.cos(pt2[0] * Math.PI / 180) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        }
-
-        function calculatePolylineKm(latLngs) {
-            let km = 0;
-            for (let i = 0; i < latLngs.length - 1; i++) {
-                km += haversineKm(latLngs[i], latLngs[i + 1]);
-            }
-            return km;
-        }
-
-        function getCellKey(lat, lng) {
-            return `${Math.round(lat / CELL_DEG)}:${Math.round(lng / CELL_DEG)}`;
-        }
-
-        function addSegmentToGrid(coords, targetSet) {
-            let addedKm = 0;
-            for (let i = 1; i < coords.length; i++) {
-                const a = coords[i - 1];
-                const b = coords[i];
-                const distKm = haversineKm(a, b);
-                if (distKm <= 0 || distKm > 3) continue;
-                const distM = distKm * 1000;
-                const steps = Math.max(1, Math.ceil(distM / SAMPLE_M));
-                const stepKm = distKm / steps;
-                for (let k = 0; k < steps; k++) {
-                    const f = (k + 0.5) / steps;
-                    const lat = a[0] + (b[0] - a[0]) * f;
-                    const lng = a[1] + (b[1] - a[1]) * f;
-                    const key = getCellKey(lat, lng);
-                    if (!targetSet.has(key)) {
-                        targetSet.add(key);
-                        addedKm += stepKm;
-                    }
-                }
-            }
-            return addedKm;
-        }
-
-        function recomputeUniqueCoverage() {
-            visitedCells = new Set();
-            uniqueDistanceKm = 0;
-            savedRides.forEach(ride => {
-                if (ride && ride.length > 1) {
-                    uniqueDistanceKm += addSegmentToGrid(ride, visitedCells);
-                }
-            });
-        }
-
-        function updateStatsUI(liveNewKm = 0) {
-            const totalUniqueKm = uniqueDistanceKm + liveNewKm;
-            const coveragePct = Math.min(100, (totalUniqueKm / SG_TOTAL_ROAD_KM) * 100);
-
-            document.getElementById('stat-distance').innerText = `${totalUniqueKm.toFixed(2)} km`;
-            document.getElementById('stat-coverage').innerText = `${coveragePct.toFixed(2)}%`;
-        }
-
-        function renderSavedRides() {
-            recomputeUniqueCoverage();
-
-            if (usingGoogleMaps && gMap) {
-                gSavedPolylines.forEach(p => p.setMap(null));
-                gSavedPolylines = [];
-                savedRides.forEach(rideCoords => {
-                    if (rideCoords && rideCoords.length > 1) {
-                        const path = rideCoords.map(pt => ({ lat: pt[0], lng: pt[1] }));
-                        const glow = new google.maps.Polyline({
-                            path,
-                            strokeColor: '#f59e0b',
-                            strokeOpacity: 0.35,
-                            strokeWeight: 10,
-                            map: gMap
-                        });
-                        const core = new google.maps.Polyline({
-                            path,
-                            strokeColor: '#fde047',
-                            strokeOpacity: 1.0,
-                            strokeWeight: 4,
-                            map: gMap
-                        });
-                        gSavedPolylines.push(glow, core);
-                    }
+          try {
+            var res = await fetch(url);
+            if (res.ok) {
+              var json = await res.json();
+              if (json.code === 'Ok' && json.matchings && json.matchings.length) {
+                json.matchings.forEach(function (m) {
+                  var mapped = m.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
+                  if (mapped.length > 1) segs.push(mapped);
                 });
-            } else if (lMap && lRidesGroup) {
-                lRidesGroup.clearLayers();
-                savedRides.forEach(rideCoords => {
-                    if (rideCoords && rideCoords.length > 1) {
-                        L.polyline(rideCoords, { color: '#f59e0b', weight: 10, opacity: 0.35, lineCap: 'round', lineJoin: 'round' }).addTo(lRidesGroup);
-                        L.polyline(rideCoords, { color: '#fde047', weight: 4, opacity: 1.0, lineCap: 'round', lineJoin: 'round' }).addTo(lRidesGroup);
-                    }
-                });
-            }
-            updateStatsUI(0);
-        }
-
-        function updateRiderPosition(latLng, pan = true) {
-            lastKnownLatLng = latLng;
-            if (usingGoogleMaps && gMap && gRiderMarker) {
-                const pos = { lat: latLng[0], lng: latLng[1] };
-                gRiderMarker.setPosition(pos);
-                if (pan) gMap.panTo(pos);
-            } else if (lMap && lRiderMarker) {
-                lRiderMarker.setLatLng(latLng);
-                if (pan) lMap.panTo(latLng, { animate: true });
-            }
-        }
-
-        function recenterMap() {
-            if (usingGoogleMaps && gMap) {
-                gMap.panTo({ lat: lastKnownLatLng[0], lng: lastKnownLatLng[1] });
-                gMap.setZoom(15);
-            } else if (lMap) {
-                lMap.invalidateSize();
-                lMap.flyTo(lastKnownLatLng, 15, { duration: 0.8 });
-            }
-        }
-
-        function drawActivePolyline(coords) {
-            if (usingGoogleMaps && gMap) {
-                const path = coords.map(pt => ({ lat: pt[0], lng: pt[1] }));
-                if (gActiveOutline) {
-                    gActiveOutline.setPath(path);
-                } else {
-                    gActiveOutline = new google.maps.Polyline({
-                        path,
-                        strokeColor: '#f59e0b',
-                        strokeOpacity: 0.4,
-                        strokeWeight: 10,
-                        map: gMap
-                    });
-                }
-                if (gActivePolyline) {
-                    gActivePolyline.setPath(path);
-                } else {
-                    gActivePolyline = new google.maps.Polyline({
-                        path,
-                        strokeColor: '#34d399',
-                        strokeOpacity: 1,
-                        strokeWeight: 4.5,
-                        map: gMap
-                    });
-                }
-                return;
-            }
-            if (!lMap) return;
-            if (lActiveOutline) {
-                lActiveOutline.setLatLngs(coords);
+              } else {
+                segs.push(chunk);
+              }
             } else {
-                lActiveOutline = L.polyline(coords, { color: '#f59e0b', weight: 10, opacity: 0.4 }).addTo(lMap);
+              segs.push(chunk);
             }
-            if (lActivePolyline) {
-                lActivePolyline.setLatLngs(coords);
-            } else {
-                lActivePolyline = L.polyline(coords, { color: '#34d399', weight: 4.5, opacity: 1 }).addTo(lMap);
-            }
+          } catch (e) {
+            segs.push(chunk);
+          }
+
+          if (i + (CFG.CHUNK - 1) < pts.length - 1) {
+            await sleep(CFG.CHUNK_DELAY_MS);
+          }
         }
+      } finally {
+        $('snapOverlay').classList.add('hidden-i');
+      }
+      return segs.length ? segs : [pts];
+    }
 
-        function clearActivePolyline() {
-            if (gActiveOutline) { gActiveOutline.setMap(null); gActiveOutline = null; }
-            if (gActivePolyline) { gActivePolyline.setMap(null); gActivePolyline = null; }
-            if (lActiveOutline && lMap) { lMap.removeLayer(lActiveOutline); lActiveOutline = null; }
-            if (lActivePolyline && lMap) { lMap.removeLayer(lActivePolyline); lActivePolyline = null; }
+    /* ================================================================
+       Recording & Simulation State Machine
+       ================================================================ */
+    var mode = 'idle';
+    var watchId = null;
+    var simTimer = null;
+    var chipTimer = null;
+    var active = null;
+    var followUser = true;
+
+    function newActive(kind) {
+      return { kind: kind, start: Date.now(), pts: [], simSec: 0 };
+    }
+
+    function persistActive() {
+      if (active && active.kind === 'gps' && active.pts.length) {
+        lsSet(CFG.ACTIVE_KEY, { start: active.start, pts: active.pts });
+      }
+    }
+
+    window.addEventListener('pagehide', persistActive);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') persistActive();
+    });
+
+    function setMode(next) {
+      mode = next;
+      var recBtn = $('btnRecord'), simBtn = $('btnSim');
+      if (next === 'recording') {
+        recBtn.dataset.state = 'on';
+        recBtn.setAttribute('aria-pressed', 'true');
+        $('recIcon').innerHTML = ICONS.stop;
+        $('recText').textContent = 'Stop Ride';
+        simBtn.disabled = true;
+        setStatus('Recording', 'red');
+        $('liveLabel').textContent = 'Live GPS';
+        $('liveChip').classList.remove('hidden-i');
+      } else if (next === 'sim') {
+        simBtn.dataset.state = 'on';
+        simBtn.setAttribute('aria-pressed', 'true');
+        $('simIcon').innerHTML = ICONS.stop;
+        $('simText').textContent = 'Stop Sim';
+        recBtn.disabled = true;
+        setStatus('Simulating', 'amber');
+        $('liveLabel').textContent = 'ECP Sim';
+        $('liveChip').classList.remove('hidden-i');
+      } else {
+        recBtn.dataset.state = 'off';
+        recBtn.setAttribute('aria-pressed', 'false');
+        recBtn.disabled = false;
+        $('recIcon').innerHTML = ICONS.rec;
+        $('recText').textContent = 'Record Ride';
+
+        simBtn.dataset.state = 'off';
+        simBtn.setAttribute('aria-pressed', 'false');
+        simBtn.disabled = false;
+        $('simIcon').innerHTML = ICONS.play;
+        $('simText').textContent = 'Simulate';
+
+        setStatus('Ready', '');
+        $('liveChip').classList.add('hidden-i');
+        clearInterval(chipTimer);
+        chipTimer = null;
+      }
+    }
+
+    function addPoint(lat, lng, t, acc, speedMps) {
+      if (!active) return;
+      var ll = [lat, lng];
+      if (active.pts.length) {
+        var last = active.pts[active.pts.length - 1];
+        var d = hav([last.lat, last.lng], ll);
+        if (d < CFG.MIN_STEP_M) return;
+      }
+      active.pts.push({ lat: lat, lng: lng, t: t || Date.now(), acc: acc || 10 });
+      var path = active.pts.map(function (p) { return [p.lat, p.lng]; });
+      liveLine.setLatLngs(path);
+      updateUserMarker(lat, lng, acc, active.kind === 'sim');
+      if (followUser) map.panTo(ll, { animate: true });
+
+      var tempSet = new Set(cells);
+      var newCovKm = coverSeg(path, tempSet);
+      var rideKm = pathLenM(path) / 1000;
+      var kmh = typeof speedMps === 'number' && speedMps >= 0 ? speedMps * 3.6 : 0;
+
+      $('liveKm').textContent = rideKm.toFixed(2);
+      $('livePts').textContent = active.pts.length;
+      updateHUD(newCovKm, rideKm, kmh);
+      persistActive();
+    }
+
+    function startChipTimer() {
+      clearInterval(chipTimer);
+      chipTimer = setInterval(function () {
+        if (!active) return;
+        var sec = active.kind === 'sim' ? active.simSec : (Date.now() - active.start) / 1000;
+        $('liveTime').textContent = fmtDur(sec);
+      }, 500);
+    }
+
+    function startRecording(resumeActive) {
+      if (!navigator.geolocation) {
+        toast('Geolocation is not supported on this device.', 'err');
+        return;
+      }
+      haptic(25);
+      followUser = true;
+      $('btnLocate').dataset.active = 'true';
+      if (!resumeActive) {
+        active = newActive('gps');
+      }
+      setMode('recording');
+      startChipTimer();
+
+      watchId = navigator.geolocation.watchPosition(
+        function (pos) {
+          var c = pos.coords;
+          if (c.accuracy && c.accuracy > CFG.MAX_ACC_M) return;
+          addPoint(c.latitude, c.longitude, pos.timestamp || Date.now(), c.accuracy, c.speed);
+        },
+        function (err) {
+          toast('GPS signal unavailable (' + err.message + ')', 'warn');
+        },
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+      );
+    }
+
+    async function finishRide() {
+      haptic([20, 40, 20]);
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      if (simTimer !== null) { clearInterval(simTimer); simTimer = null; }
+
+      var finished = active;
+      active = null;
+      lsDel(CFG.ACTIVE_KEY);
+      liveLine.setLatLngs([]);
+      clearUserMarker();
+      setMode('idle');
+
+      if (!finished || finished.pts.length < 2) {
+        updateHUD();
+        toast('Ride too short to save.', 'warn');
+        return;
+      }
+
+      var rawPath = finished.pts.map(function (p) { return [p.lat, p.lng]; });
+      var rawKm = pathLenM(rawPath) / 1000;
+      if (rawKm < CFG.MIN_SAVE_KM) {
+        updateHUD();
+        toast('Ride under 50m was not saved.', 'warn');
+        return;
+      }
+
+      var snappedSegs = await snapToOSRM(rawPath);
+      var snappedKm = 0;
+      snappedSegs.forEach(function (s) { snappedKm += pathLenM(s) / 1000; });
+
+      var beforeCov = coverageKm;
+      data.rides.push({
+        id: Date.now(),
+        start: finished.start,
+        end: Date.now(),
+        km: snappedKm || rawKm,
+        segs: snappedSegs
+      });
+      saveData();
+      renderAllRides();
+
+      var gainedKm = Math.max(0, coverageKm - beforeCov);
+      toast('Saved! +' + gainedKm.toFixed(2) + ' km new SG roads explored.');
+    }
+
+    function startSimulation() {
+      haptic(25);
+      followUser = true;
+      $('btnLocate').dataset.active = 'true';
+      active = newActive('sim');
+      setMode('sim');
+      startChipTimer();
+
+      var idx = 0;
+      map.setView(ECP_ROUTE[0], 14);
+      simTimer = setInterval(function () {
+        if (idx >= ECP_ROUTE.length) {
+          finishRide();
+          return;
         }
+        var pt = ECP_ROUTE[idx];
+        active.simSec += CFG.SIM_SECONDS_PER_TICK;
+        addPoint(pt[0], pt[1], Date.now(), 8, 18.5);
+        idx++;
+      }, CFG.SIM_TICK_MS);
+    }
 
-        // ==========================================
-        // 5. AUTOMATIC ROAD SNAPPING (GOOGLE ROADS + OSRM)
-        // ==========================================
-        async function snapToRoads(latLngs) {
-            if (!latLngs || latLngs.length < 2) return latLngs;
+    /* ================================================================
+       Button Bindings
+       ================================================================ */
+    $('recIcon').innerHTML = ICONS.rec;
+    $('simIcon').innerHTML = ICONS.play;
 
-            let sampled = latLngs;
-            if (latLngs.length > 60) {
-                const step = Math.ceil(latLngs.length / 60);
-                sampled = latLngs.filter((_, idx) => idx % step === 0 || idx === latLngs.length - 1);
-            }
+    $('btnRecord').addEventListener('click', function () {
+      if (mode === 'recording') finishRide();
+      else if (mode === 'idle') startRecording(false);
+    });
 
-            if (googleApiKey) {
-                try {
-                    const pathParam = sampled.map(pt => `${pt[0]},${pt[1]}`).join('|');
-                    const gUrl = `https://roads.googleapis.com/v1/snapToRoads?path=${encodeURIComponent(pathParam)}&interpolate=true&key=${encodeURIComponent(googleApiKey)}`;
-                    const gRes = await fetch(gUrl);
-                    if (gRes.ok) {
-                        const gData = await gRes.json();
-                        if (gData.snappedPoints && gData.snappedPoints.length > 1) {
-                            return gData.snappedPoints.map(p => [p.location.latitude, p.location.longitude]);
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Google Roads API fallback to OSRM:', err);
-                }
-            }
+    $('btnSim').addEventListener('click', function () {
+      if (mode === 'sim') finishRide();
+      else if (mode === 'idle') startSimulation();
+    });
 
-            try {
-                const coordsString = sampled.map(pt => `${pt[1]},${pt[0]}`).join(';');
-                const radiuses = sampled.map(() => '25').join(';');
-                const url = `https://router.project-osrm.org/match/v1/driving/${coordsString}?geometries=geojson&overview=full&tidy=true&radiuses=${radiuses}`;
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.code === 'Ok' && data.matchings && data.matchings.length > 0) {
-                        const snapped = [];
-                        data.matchings.forEach(match => {
-                            match.geometry.coordinates.forEach(c => snapped.push([c[1], c[0]]));
-                        });
-                        if (snapped.length > 1) return snapped;
-                    }
-                }
-            } catch (err) {
-                console.warn('OSRM map-matching unavailable, keeping raw GPS:', err);
-            }
+    $('btnReset').addEventListener('click', async function () {
+      if (mode !== 'idle') {
+        toast('Stop active ride before resetting.', 'warn');
+        return;
+      }
+      var ok = await confirmModal({
+        title: 'Reset all road progress?',
+        body: 'This will permanently delete all ' + data.rides.length + ' logged rides and reset your Singapore road coverage to 0.00%.',
+        confirm: 'Delete All',
+        cancel: 'Cancel',
+        danger: true
+      });
+      if (!ok) return;
+      data = { v: 1, rides: [], totalKm: 0 };
+      lsDel(CFG.STORE_KEY);
+      lsDel(CFG.ACTIVE_KEY);
+      renderAllRides();
+      toast('All rides and coverage reset.');
+    });
 
-            return latLngs;
-        }
+    $('btnLandLot').addEventListener('click', function () {
+      toggleLandLot();
+      toast(prefs.landlot ? 'SLA LandLot Cadastral Overlay: ON' : 'SLA LandLot Cadastral Overlay: OFF');
+    });
 
-        // ==========================================
-        // 6. LIVE GPS RECORDING (WITH AUTO-CHECKPOINT)
-        // ==========================================
-        function toggleGPSRecording() {
-            if (isRecording) {
-                stopGPSRecording();
-            } else {
-                startGPSRecording();
-            }
-        }
+    $('btnLayers').addEventListener('click', function () {
+      var nextIdx = (TILE_ORDER.indexOf(prefs.tiles) + 1) % TILE_ORDER.length;
+      var nextKey = TILE_ORDER[nextIdx];
+      setTiles(nextKey);
+      toast('Map: ' + TILES[nextKey].name);
+    });
 
-        function startGPSRecording(initialCoords = [], existingStart = Date.now()) {
-            if (isSimulating) stopSimulation();
-            if (!navigator.geolocation) {
-                showToast('GPS is not supported on this browser');
-                return;
-            }
+    $('btnFit').addEventListener('click', function () {
+      var pts = [];
+      data.rides.forEach(function (r) {
+        (r.segs || []).forEach(function (s) { pts = pts.concat(s); });
+      });
+      if (pts.length > 1) {
+        followUser = false;
+        $('btnLocate').dataset.active = 'false';
+        map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 15 });
+      } else {
+        map.setView(CFG.CENTER, CFG.ZOOM);
+        toast('No saved rides to frame yet.');
+      }
+    });
 
-            isRecording = true;
-            currentRideCoords = initialCoords.slice();
-            draftStartTimestamp = existingStart;
-
-            const btn = document.getElementById('record-btn');
-            btn.className = 'flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-white shadow-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-red-500/60';
-            document.getElementById('record-dot').className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
-            document.getElementById('record-text').innerText = 'Stop & Save';
-
-            const badge = document.getElementById('status-badge');
-            badge.innerText = 'Recording';
-            badge.className = 'text-[10px] font-semibold bg-red-500/20 text-red-300 border border-red-500/40 px-2 py-0.5 rounded-full animate-pulse';
-
-            if (currentRideCoords.length > 0) {
-                drawActivePolyline(currentRideCoords);
-            }
-
-            const tempGrid = new Set(visitedCells);
-            let liveUniqueAddedKm = currentRideCoords.length > 1 ? addSegmentToGrid(currentRideCoords, tempGrid) : 0;
-            updateStatsUI(liveUniqueAddedKm);
-
-            watchId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    const { latitude, longitude, speed, accuracy } = pos.coords;
-                    if (accuracy && accuracy > 60) return;
-
-                    const pt = [latitude, longitude];
-                    if (currentRideCoords.length > 0) {
-                        const prev = currentRideCoords[currentRideCoords.length - 1];
-                        const stepKm = haversineKm(prev, pt);
-                        if (stepKm < 0.004) return; // Filter GPS jitter < 4m
-                        liveUniqueAddedKm += addSegmentToGrid([prev, pt], tempGrid);
-                    }
-
-                    currentRideCoords.push(pt);
-                    persistActiveDraft(); // Save immediately after every new GPS coordinate!
-
-                    updateRiderPosition(pt, true);
-                    drawActivePolyline(currentRideCoords);
-                    updateStatsUI(liveUniqueAddedKm);
-
-                    const kmh = speed && speed > 0 ? Math.round(speed * 3.6) : 0;
-                    document.getElementById('stat-speed').innerText = `${kmh} km/h`;
-                },
-                (err) => {
-                    showToast('Waiting for clear GPS signal...');
-                    console.warn('GPS Error:', err);
-                },
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 1000,
-                    timeout: 10000
-                }
-            );
-        }
-
-        async function stopGPSRecording() {
-            isRecording = false;
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-
-            const btn = document.getElementById('record-btn');
-            btn.className = 'flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-white shadow-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-red-400/30';
-            document.getElementById('record-dot').className = 'w-2.5 h-2.5 rounded-full bg-white';
-            document.getElementById('record-text').innerText = 'Record Ride';
-            document.getElementById('stat-speed').innerText = '0 km/h';
-
-            const badge = document.getElementById('status-badge');
-            badge.innerText = 'Saved';
-            badge.className = 'text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full';
-
-            const rawCoords = currentRideCoords.slice();
-            currentRideCoords = [];
-            clearActiveDraft();
-            clearActivePolyline();
-
-            if (rawCoords.length >= 2) {
-                showToast('Snapping ride to Singapore roads...');
-                const snapped = await snapToRoads(rawCoords);
-                savedRides.push(snapped);
-                localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(savedRides));
-                renderSavedRides();
-                showToast('Ride saved to device!');
-            } else {
-                renderSavedRides();
-                showToast('Ride too short to save');
-            }
-        }
-
-        // ==========================================
-        // 7. EAST COAST PARKWAY SIMULATION MODE
-        // ==========================================
-        const ECP_SIM_COORDS = [
-            [1.29429, 103.86595], [1.29519, 103.87033], [1.29543, 103.87346], [1.29550, 103.87587],
-            [1.29561, 103.87929], [1.29576, 103.88207], [1.29585, 103.88459], [1.29576, 103.88957],
-            [1.29565, 103.89206], [1.29602, 103.89435], [1.29706, 103.89713], [1.29835, 103.90055],
-            [1.29970, 103.90419], [1.30054, 103.90686], [1.30139, 103.90986], [1.30244, 103.91346],
-            [1.30342, 103.91700], [1.30408, 103.91932], [1.30475, 103.92166], [1.30566, 103.92498]
-        ];
-
-        function toggleGPSSimulation() {
-            if (isSimulating) {
-                stopSimulation();
-            } else {
-                startSimulation();
-            }
-        }
-
-        function startSimulation() {
-            if (isRecording) stopGPSRecording();
-            isSimulating = true;
-            currentRideCoords = [];
-
-            document.getElementById('sim-icon').className = 'fa-solid fa-stop text-xs text-red-400';
-            document.getElementById('sim-text').innerText = 'Stop Sim';
-
-            const badge = document.getElementById('status-badge');
-            badge.innerText = 'Simulating';
-            badge.className = 'text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full';
-
-            let idx = 0;
-            const tempGrid = new Set(visitedCells);
-            let liveUniqueAddedKm = 0;
-
-            simInterval = setInterval(() => {
-                if (idx < ECP_SIM_COORDS.length) {
-                    const pt = ECP_SIM_COORDS[idx];
-                    if (currentRideCoords.length > 0) {
-                        const prev = currentRideCoords[currentRideCoords.length - 1];
-                        liveUniqueAddedKm += addSegmentToGrid([prev, pt], tempGrid);
-                    }
-                    currentRideCoords.push(pt);
-                    updateRiderPosition(pt, true);
-                    drawActivePolyline(currentRideCoords);
-                    updateStatsUI(liveUniqueAddedKm);
-                    document.getElementById('stat-speed').innerText = `${62 + Math.floor(Math.random() * 14)} km/h`;
-                    idx++;
-                } else {
-                    stopSimulation();
-                }
-            }, 450);
-        }
-
-        async function stopSimulation() {
-            isSimulating = false;
-            if (simInterval) {
-                clearInterval(simInterval);
-                simInterval = null;
-            }
-
-            document.getElementById('sim-icon').className = 'fa-solid fa-play text-xs';
-            document.getElementById('sim-text').innerText = 'Simulate';
-            document.getElementById('stat-speed').innerText = '0 km/h';
-
-            const badge = document.getElementById('status-badge');
-            badge.innerText = 'Saved';
-            badge.className = 'text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full';
-
-            const rawCoords = currentRideCoords.slice();
-            currentRideCoords = [];
-            clearActivePolyline();
-
-            if (rawCoords.length >= 2) {
-                const snapped = await snapToRoads(rawCoords);
-                savedRides.push(snapped);
-                localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(savedRides));
-                renderSavedRides();
-                showToast('Simulated ECP ride saved!');
-            }
-        }
-
-        // ==========================================
-        // 8. API KEY MODAL, TOAST & RESET CONTROLS
-        // ==========================================
-        function openApiKeyModal() {
-            const input = document.getElementById('apikey-input');
-            const removeBtn = document.getElementById('remove-key-btn');
-            input.value = googleApiKey;
-            if (googleApiKey) {
-                removeBtn.classList.remove('hidden');
-            } else {
-                removeBtn.classList.add('hidden');
-            }
-            document.getElementById('apikey-modal').classList.remove('hidden');
-        }
-
-        function closeApiKeyModal() {
-            document.getElementById('apikey-modal').classList.add('hidden');
-        }
-
-        function saveApiKey() {
-            const val = document.getElementById('apikey-input').value.trim();
-            if (!val) {
-                showToast('Please paste a valid Google Maps API key');
-                return;
-            }
-            googleApiKey = val;
-            localStorage.setItem(STORAGE_KEY_GMAPS, googleApiKey);
-            updateApiKeyButtonUI();
-            closeApiKeyModal();
-            loadGoogleMapsScript(googleApiKey);
-        }
-
-        function clearApiKey() {
-            googleApiKey = '';
-            localStorage.removeItem(STORAGE_KEY_GMAPS);
-            updateApiKeyButtonUI();
-            closeApiKeyModal();
-            gMap = null;
-            usingGoogleMaps = false;
-            initOpenSourceMap();
-            showToast('Switched back to free Open-Source map');
-        }
-
-        function showToast(message) {
-            const banner = document.getElementById('toast-banner');
-            document.getElementById('toast-msg').innerText = message;
-            banner.classList.remove('opacity-0');
-            clearTimeout(window._toastTimer);
-            window._toastTimer = setTimeout(() => {
-                banner.classList.add('opacity-0');
-            }, 2600);
-        }
-
-        function openResetModal() {
-            const pct = Math.min(100, (uniqueDistanceKm / SG_TOTAL_ROAD_KM) * 100).toFixed(2);
-            document.getElementById('modal-pct-preview').innerText = `${pct}%`;
-            document.getElementById('reset-modal').classList.remove('hidden');
-        }
-
-        function closeResetModal() {
-            document.getElementById('reset-modal').classList.add('hidden');
-        }
-
-        function confirmClearAllData() {
-            if (isRecording) stopGPSRecording();
-            if (isSimulating) stopSimulation();
-
-            localStorage.removeItem(STORAGE_KEY_RIDES);
-            clearActiveDraft();
-            uniqueDistanceKm = 0;
-            visitedCells = new Set();
-            savedRides = [];
-            currentRideCoords = [];
-
-            clearActivePolyline();
-            renderSavedRides();
-            closeResetModal();
-            showToast('All SG road progress reset to 0.00%');
-        }
-
-        // ==========================================
-        // 9. WINDOW LIFECYCLE HANDLERS
-        // ==========================================
-        window.addEventListener('load', bootstrapApp);
-        window.addEventListener('resize', () => {
-            if (lMap) lMap.invalidateSize();
+    $('btnLocate').addEventListener('click', function () {
+      followUser = true;
+      $('btnLocate').dataset.active = 'true';
+      if (userMarker) {
+        map.setView(userMarker.getLatLng(), 15);
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          var c = pos.coords;
+          updateUserMarker(c.latitude, c.longitude, c.accuracy, false);
+          map.setView([c.latitude, c.longitude], 15);
+        }, function () {
+          toast('Unable to fetch current location.', 'warn');
         });
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                if (lMap) lMap.invalidateSize();
-            }, 250);
+      }
+    });
+
+    map.on('dragstart', function () {
+      followUser = false;
+      $('btnLocate').dataset.active = 'false';
+    });
+
+    /* ================================================================
+       Boot & Interrupted Ride Recovery
+       ================================================================ */
+    renderAllRides();
+    try {
+      var allB = [];
+      data.rides.slice(-5).forEach(function (r) { (r.segs || []).forEach(function (s) { allB = allB.concat(s); }); });
+      if (allB.length > 1) map.fitBounds(L.latLngBounds(allB), { padding: [60, 60], maxZoom: 15 });
+    } catch (e) {}
+
+    var pending = lsGet(CFG.ACTIVE_KEY, null);
+    if (pending && Array.isArray(pending.pts) && pending.pts.length >= 2) {
+      var pkm = pathLenM(pending.pts.map(function (p) { return [p.lat, p.lng]; })) / 1000;
+      setTimeout(async function () {
+        var keep = await confirmModal({
+          title: 'Unfinished ride found',
+          body: 'A ride from ' + new Date(pending.start).toLocaleString('en-SG') + ' (' + pkm.toFixed(2) + ' km, ' + pending.pts.length + ' points) was interrupted. Snap it to roads and save it?',
+          confirm: 'Save ride',
+          cancel: 'Discard'
         });
-    </script>
+        if (!keep) { lsDel(CFG.ACTIVE_KEY); return; }
+        active = newActive('gps');
+        active.start = pending.start || Date.now();
+        pending.pts.forEach(function (p) { addPoint(p.lat, p.lng, p.t, p.acc); });
+        var last = pending.pts[pending.pts.length - 1];
+        active.start = Date.now() - Math.max(0, (last.t - pending.pts[0].t));
+        setMode('recording');
+        finishRide();
+      }, 600);
+    } else if (pending) {
+      lsDel(CFG.ACTIVE_KEY);
+    }
+
+    if (!window.isSecureContext && location.protocol === 'file:') {
+      setTimeout(function () { toast('Live GPS requires HTTPS. Simulation works anywhere.', 'warn', 4500); }, 800);
+    }
+  })();
+  </script>
 </body>
 </html>
