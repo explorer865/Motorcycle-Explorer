@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>SG Explorer PWA - Road Progress Tracker</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Leaflet 1.9.4 CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        /* Explicit full-viewport sizing to prevent 0px height collapse on iOS Safari */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: #0b0f19;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* Full-screen Map Container */
+        #map {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            z-index: 1;
+            background-color: #0b0f19;
+        }
+
+        /* Safe area padding helpers for iPhone notch & home bar */
+        .pt-safe-top {
+            padding-top: max(12px, env(safe-area-inset-top));
+        }
+        .pb-safe-bottom {
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.85; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        .gps-pulse {
+            animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Full-Viewport Map Canvas -->
+    <div id="map"></div>
+
+    <!-- Floating Mobile UI Overlay -->
+    <div class="fixed inset-0 z-10 flex flex-col justify-between pointer-events-none px-3.5 pt-safe-top pb-safe-bottom">
+
+        <!-- Top Floating Header & Map Controls -->
+        <div class="flex flex-col gap-2 pointer-events-none">
+            <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 shadow-2xl flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                        <i class="fa-solid fa-motorcycle text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-white font-bold text-sm tracking-tight">SG Explorer PWA</h1>
+                            <span id="status-badge" class="text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                Saved
+                            </span>
+                        </div>
+                        <p id="subtitle-text" class="text-slate-400 text-[11px] mt-0.5">Open-Source Map • Dark Roads</p>
+                    </div>
+                </div>
+
+                <!-- Right Header Action Buttons -->
+                <div class="flex items-center gap-1.5">
+                    <button id="api-key-btn" onclick="openApiKeyModal()" title="Set Google Maps API Key" class="h-10 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition">
+                        <i class="fa-solid fa-key text-amber-400"></i>
+                        <span id="api-key-label">API Key</span>
+                    </button>
+                    <button id="layer-toggle-btn" onclick="toggleMapStyle()" title="Switch Map Style" class="h-10 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition">
+                        <i class="fa-solid fa-layer-group text-amber-400"></i>
+                        <span id="layer-label">Dark</span>
+                    </button>
+                    <button onclick="recenterMap()" title="Recenter Map" class="w-10 h-10 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center justify-center active:scale-95 transition">
+                        <i class="fa-solid fa-crosshairs text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Legend Pill -->
+            <div class="flex justify-end pointer-events-none">
+                <div class="pointer-events-auto bg-slate-900/85 backdrop-blur-md border border-slate-700/60 px-3 py-1 rounded-full text-[11px] font-medium text-slate-200 flex items-center gap-2 shadow-lg">
+                    <span class="w-3.5 h-1.5 bg-amber-400 rounded-full inline-block shadow-[0_0_8px_#fbbf24]"></span>
+                    <span>Ridden Roads</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Floating Telemetry HUD & Action Controls -->
+        <div class="flex flex-col gap-2.5 pointer-events-none">
+
+            <!-- 3-Column Cumulative Telemetry Cards -->
+            <div class="pointer-events-auto grid grid-cols-3 gap-2">
+                <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 text-center shadow-xl">
+                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">SG Coverage</span>
+                    <span id="stat-coverage" class="text-lg font-extrabold text-amber-400 mt-0.5 block">0.00%</span>
+                </div>
+                <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 text-center shadow-xl">
+                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Unique Dist</span>
+                    <span id="stat-distance" class="text-lg font-extrabold text-amber-400 mt-0.5 block">0.00 km</span>
+                </div>
+                <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-700/70 rounded-2xl p-3 text-center shadow-xl">
+                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Speed</span>
+                    <span id="stat-speed" class="text-lg font-extrabold text-emerald-400 mt-0.5 block">0 km/h</span>
+                </div>
+            </div>
+
+            <!-- Action Controls Row -->
+            <div class="pointer-events-auto flex items-center gap-2">
+                <button id="record-btn" onclick="toggleGPSRecording()" class="flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-white shadow-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-red-400/30">
+                    <span id="record-dot" class="w-2.5 h-2.5 rounded-full bg-white"></span>
+                    <span id="record-text">Record Ride</span>
+                </button>
+
+                <button id="sim-btn" onclick="toggleGPSSimulation()" class="flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-amber-300 shadow-xl bg-slate-900/95 hover:bg-slate-800 border border-slate-700 active:scale-[0.98] transition flex items-center justify-center gap-2">
+                    <i id="sim-icon" class="fa-solid fa-play text-xs"></i>
+                    <span id="sim-text">Simulate</span>
+                </button>
+
+                <button onclick="openResetModal()" title="Clear Saved Progress" class="w-12 h-12 rounded-2xl bg-slate-900/95 hover:bg-red-950/80 border border-slate-700 hover:border-red-500/50 text-slate-300 hover:text-red-400 flex items-center justify-center active:scale-95 transition shadow-xl shrink-0">
+                    <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom In-App Toast Banner -->
+    <div id="toast-banner" class="fixed top-24 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 border border-slate-700 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2 whitespace-nowrap">
+        <i id="toast-icon" class="fa-solid fa-circle-info text-amber-400"></i>
+        <span id="toast-msg">Status update</span>
+    </div>
+
+    <!-- Interrupted Ride Recovery Modal (Tab Closed / Reloaded) -->
+    <div id="recovery-modal" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-5">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <h2 class="text-white font-bold text-base">Unfinished Ride Recovered</h2>
+            <p class="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                Your previous tab was closed while recording a <span id="recovery-dist-preview" class="text-amber-400 font-bold">0.00 km</span> ride (<span id="recovery-pts-preview" class="text-slate-200 font-semibold">0</span> GPS points). Would you like to resume it or save it to your progress?
+            </p>
+            <div class="grid grid-cols-2 gap-2.5 mt-5">
+                <button onclick="resumeInterruptedRide()" class="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg">
+                    Resume Ride
+                </button>
+                <button onclick="saveInterruptedRide()" class="py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition shadow-lg">
+                    Snap &amp; Save
+                </button>
+            </div>
+            <button onclick="discardInterruptedRide()" class="mt-3 w-full py-2 text-[11px] text-red-400 hover:text-red-300 font-medium">
+                Discard Unfinished Ride
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom In-App Google Maps API Key Modal -->
+    <div id="apikey-modal" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-5">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <h2 class="text-white font-bold text-base text-center">Google Maps API Key</h2>
+            <p class="text-slate-400 text-xs mt-1.5 leading-relaxed text-center">
+                Paste your Google Maps JavaScript API key below to switch from the open-source fallback to Google Maps &amp; Roads snapping.
+            </p>
+            <input id="apikey-input" type="text" placeholder="AIzaSy..." class="mt-4 w-full px-3.5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-amber-400" />
+            <div class="grid grid-cols-2 gap-2.5 mt-4">
+                <button onclick="closeApiKeyModal()" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+                    Cancel
+                </button>
+                <button onclick="saveApiKey()" class="py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition shadow-lg">
+                    Save &amp; Load
+                </button>
+            </div>
+            <button id="remove-key-btn" onclick="clearApiKey()" class="hidden mt-3 w-full py-2 text-[11px] text-red-400 hover:text-red-300 font-medium">
+                Remove Saved Key (Use Open-Source)
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom In-App Reset Confirmation Modal -->
+    <div id="reset-modal" class="hidden fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-5">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
+            <div class="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2 class="text-white font-bold text-base">Reset All Road Progress?</h2>
+            <p class="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                This will permanently clear your <span id="modal-pct-preview" class="text-amber-400 font-bold">0.00%</span> Singapore coverage and delete all saved ride routes from this device.
+            </p>
+            <div class="grid grid-cols-2 gap-2.5 mt-5">
+                <button onclick="closeResetModal()" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+                    Cancel
+                </button>
+                <button onclick="confirmClearAllData()" class="py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition shadow-lg">
+                    Yes, Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet 1.9.4 JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <script>
+        // ==========================================
+        // 1. CONSTANTS & PERSISTENT STATE
+        // ==========================================
+        const SG_TOTAL_ROAD_KM = 3425.0; // Total paved road network in Singapore
+        const STORAGE_KEY_RIDES = 'sg_explorer_saved_rides_v5';
+        const STORAGE_KEY_ACTIVE_DRAFT = 'sg_explorer_active_draft_v5';
+        const STORAGE_KEY_STYLE = 'sg_explorer_map_style_v5';
+        const STORAGE_KEY_GMAPS = 'sg_explorer_gmaps_api_key_v5';
+        const CELL_DEG = 0.00025; // ~28m spatial grid for unique road deduplication
+        const SAMPLE_M = 20;
+
+        let savedRides = [];
+        try {
+            savedRides = JSON.parse(localStorage.getItem(STORAGE_KEY_RIDES) || '[]');
+        } catch (err) {
+            savedRides = [];
+        }
+
+        let uniqueDistanceKm = 0;
+        let visitedCells = new Set();
+
+        let currentStyleMode = localStorage.getItem(STORAGE_KEY_STYLE) || 'dark';
+        let googleApiKey = localStorage.getItem(STORAGE_KEY_GMAPS) || '';
+        let usingGoogleMaps = false;
+
+        // Google Maps State
+        let gMap = null;
+        let gSavedPolylines = [];
+        let gActiveOutline = null;
+        let gActivePolyline = null;
+        let gRiderMarker = null;
+
+        // Leaflet Open-Source Map State
+        let lMap = null;
+        let lTileLayer = null;
+        let lRidesGroup = null;
+        let lActiveOutline = null;
+        let lActivePolyline = null;
+        let lRiderMarker = null;
+
+        let isRecording = false;
+        let isSimulating = false;
+        let watchId = null;
+        let simInterval = null;
+        let currentRideCoords = [];
+        let draftStartTimestamp = 0;
+        let lastKnownLatLng = [1.3000, 103.8750]; // Singapore Marina / East Coast
+
+        // ==========================================
+        // 2. TAB-CLOSE CHECKPOINTING & CRASH RECOVERY
+        // ==========================================
+        function persistActiveDraft() {
+            if (!isRecording || currentRideCoords.length === 0) return;
+            try {
+                localStorage.setItem(STORAGE_KEY_ACTIVE_DRAFT, JSON.stringify({
+                    startTime: draftStartTimestamp || Date.now(),
+                    updatedAt: Date.now(),
+                    coords: currentRideCoords
+                }));
+            } catch (e) {
+                console.warn('Could not persist active draft:', e);
+            }
+        }
+
+        function clearActiveDraft() {
+            localStorage.removeItem(STORAGE_KEY_ACTIVE_DRAFT);
+        }
+
+        // Emergency save hooks whenever iOS Safari suspends, hides, or closes the tab
+        window.addEventListener('pagehide', persistActiveDraft);
+        window.addEventListener('beforeunload', (e) => {
+            if (isRecording && currentRideCoords.length > 1) {
+                persistActiveDraft();
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                persistActiveDraft();
+            }
+        });
+
+        function checkForInterruptedRide() {
+            try {
+                const rawDraft = localStorage.getItem(STORAGE_KEY_ACTIVE_DRAFT);
+                if (!rawDraft) return;
+                const draft = JSON.parse(rawDraft);
+                if (draft && Array.isArray(draft.coords) && draft.coords.length >= 2) {
+                    const distKm = calculatePolylineKm(draft.coords);
+                    document.getElementById('recovery-dist-preview').innerText = `${distKm.toFixed(2)} km`;
+                    document.getElementById('recovery-pts-preview').innerText = draft.coords.length;
+                    document.getElementById('recovery-modal').classList.remove('hidden');
+
+                    // Draw recovered trail immediately on map so user can see it
+                    drawActivePolyline(draft.coords);
+                    const lastPt = draft.coords[draft.coords.length - 1];
+                    updateRiderPosition(lastPt, true);
+                } else {
+                    clearActiveDraft();
+                }
+            } catch (e) {
+                clearActiveDraft();
+            }
+        }
+
+        function resumeInterruptedRide() {
+            try {
+                const draft = JSON.parse(localStorage.getItem(STORAGE_KEY_ACTIVE_DRAFT) || 'null');
+                document.getElementById('recovery-modal').classList.add('hidden');
+                if (draft && Array.isArray(draft.coords)) {
+                    startGPSRecording(draft.coords, draft.startTime);
+                    showToast('Resumed your unfinished ride!');
+                }
+            } catch (e) {
+                clearActiveDraft();
+            }
+        }
+
+        async function saveInterruptedRide() {
+            try {
+                const draft = JSON.parse(localStorage.getItem(STORAGE_KEY_ACTIVE_DRAFT) || 'null');
+                document.getElementById('recovery-modal').classList.add('hidden');
+                clearActiveDraft();
+                clearActivePolyline();
+                if (draft && Array.isArray(draft.coords) && draft.coords.length >= 2) {
+                    showToast('Snapping recovered ride to roads...');
+                    const snapped = await snapToRoads(draft.coords);
+                    savedRides.push(snapped);
+                    localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(savedRides));
+                    renderSavedRides();
+                    showToast('Recovered ride saved!');
+                }
+            } catch (e) {
+                clearActiveDraft();
+            }
+        }
+
+        function discardInterruptedRide() {
+            clearActiveDraft();
+            clearActivePolyline();
+            document.getElementById('recovery-modal').classList.add('hidden');
+            showToast('Unfinished ride discarded');
+        }
+
+        // ==========================================
+        // 3. MAP INITIALIZATION (GOOGLE MAPS + FALLBACK)
+        // ==========================================
+        function bootstrapApp() {
+            recomputeUniqueCoverage();
+            updateStatsUI(0);
+            updateApiKeyButtonUI();
+
+            if (googleApiKey) {
+                loadGoogleMapsScript(googleApiKey);
+            } else {
+                initOpenSourceMap();
+            }
+
+            setTimeout(checkForInterruptedRide, 350);
+        }
+
+        function updateApiKeyButtonUI() {
+            const label = document.getElementById('api-key-label');
+            const btn = document.getElementById('api-key-btn');
+            if (googleApiKey) {
+                label.innerText = 'G-Maps';
+                btn.className = 'h-10 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition';
+            } else {
+                label.innerText = 'API Key';
+                btn.className = 'h-10 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition';
+            }
+        }
+
+        function loadGoogleMapsScript(key) {
+            window.gm_authFailure = () => {
+                showToast('Invalid Google Maps key — switching to Open-Source');
+                usingGoogleMaps = false;
+                initOpenSourceMap();
+            };
+
+            window.initGoogleMapCallback = () => {
+                try {
+                    if (lMap) {
+                        lMap.remove();
+                        lMap = null;
+                    }
+                    const lightStyles = [
+                        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+                        { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+                    ];
+                    const darkStyles = [
+                        { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+                        { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
+                        { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+                        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#334155' }] },
+                        { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#475569' }] },
+                        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
+                        { featureType: 'poi', stylers: [{ visibility: 'off' }] }
+                    ];
+
+                    gMap = new google.maps.Map(document.getElementById('map'), {
+                        center: { lat: 1.3350, lng: 103.8450 },
+                        zoom: 12,
+                        disableDefaultUI: true,
+                        mapTypeId: 'roadmap',
+                        styles: currentStyleMode === 'dark' ? darkStyles : lightStyles
+                    });
+
+                    gRiderMarker = new google.maps.Marker({
+                        position: { lat: lastKnownLatLng[0], lng: lastKnownLatLng[1] },
+                        map: gMap,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 7,
+                            fillColor: '#f59e0b',
+                            fillOpacity: 1,
+                            strokeColor: '#0f172a',
+                            strokeWeight: 2.5
+                        }
+                    });
+
+                    usingGoogleMaps = true;
+                    updateStyleLabels();
+                    renderSavedRides();
+                    showToast('Google Maps loaded');
+                } catch (err) {
+                    usingGoogleMaps = false;
+                    initOpenSourceMap();
+                }
+            };
+
+            const existing = document.getElementById('gmaps-sdk-script');
+            if (existing) existing.remove();
+
+            const script = document.createElement('script');
+            script.id = 'gmaps-sdk-script';
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&callback=initGoogleMapCallback`;
+            script.async = true;
+            script.defer = true;
+            script.onerror = () => {
+                showToast('Failed to load Google Maps — using Open-Source');
+                usingGoogleMaps = false;
+                initOpenSourceMap();
+            };
+            document.head.appendChild(script);
+        }
+
+        function initOpenSourceMap() {
+            usingGoogleMaps = false;
+            if (lMap) {
+                lMap.invalidateSize();
+                return;
+            }
+
+            lMap = L.map('map', {
+                center: [1.3350, 103.8450],
+                zoom: 12,
+                zoomControl: false,
+                attributionControl: false,
+                preferCanvas: true
+            });
+
+            applyLeafletTileStyle(currentStyleMode);
+            lRidesGroup = L.layerGroup().addTo(lMap);
+
+            const riderIcon = L.divIcon({
+                className: 'custom-rider-marker',
+                html: `
+                    <div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
+                        <div class="gps-pulse" style="position:absolute;width:24px;height:24px;border-radius:9999px;background:rgba(245,158,11,0.45);"></div>
+                        <div style="position:relative;width:13px;height:13px;border-radius:9999px;background:#f59e0b;border:2.5px solid #0f172a;"></div>
+                    </div>
+                `,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            lRiderMarker = L.marker(lastKnownLatLng, { icon: riderIcon }).addTo(lMap);
+
+            updateStyleLabels();
+            renderSavedRides();
+
+            lMap.invalidateSize();
+            setTimeout(() => lMap && lMap.invalidateSize(), 200);
+            setTimeout(() => lMap && lMap.invalidateSize(), 600);
+        }
+
+        function applyLeafletTileStyle(mode) {
+            if (!lMap) return;
+            if (lTileLayer) lMap.removeLayer(lTileLayer);
+
+            const url = mode === 'dark'
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+            lTileLayer = L.tileLayer(url, { subdomains: 'abcd', maxZoom: 20 });
+            lTileLayer.on('tileerror', () => {
+                lMap.removeLayer(lTileLayer);
+                lTileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(lMap);
+            });
+            lTileLayer.addTo(lMap);
+        }
+
+        function toggleMapStyle() {
+            currentStyleMode = currentStyleMode === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(STORAGE_KEY_STYLE, currentStyleMode);
+
+            if (usingGoogleMaps && gMap) {
+                const lightStyles = [
+                    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+                    { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+                ];
+                const darkStyles = [
+                    { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+                    { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
+                    { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+                    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#334155' }] },
+                    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#475569' }] },
+                    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
+                    { featureType: 'poi', stylers: [{ visibility: 'off' }] }
+                ];
+                gMap.setOptions({ styles: currentStyleMode === 'dark' ? darkStyles : lightStyles });
+            } else if (lMap) {
+                applyLeafletTileStyle(currentStyleMode);
+            }
+
+            updateStyleLabels();
+            showToast(`Map style: ${currentStyleMode === 'dark' ? 'Dark Roads' : 'Clean Light'}`);
+        }
+
+        function updateStyleLabels() {
+            const isDark = currentStyleMode === 'dark';
+            document.getElementById('layer-label').innerText = isDark ? 'Dark' : 'Light';
+            document.getElementById('subtitle-text').innerText = usingGoogleMaps
+                ? `Google Maps • ${isDark ? 'Night Roads' : 'Day Roads'}`
+                : `Open-Source Map • ${isDark ? 'Dark Roads' : 'Clean Light'}`;
+        }
+
+        // ==========================================
+        // 4. UNIQUE ROAD DEDUPLICATION & GEOMETRY
+        // ==========================================
+        function haversineKm(pt1, pt2) {
+            const R = 6371;
+            const dLat = (pt2[0] - pt1[0]) * Math.PI / 180;
+            const dLon = (pt2[1] - pt1[1]) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(pt1[0] * Math.PI / 180) * Math.cos(pt2[0] * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function calculatePolylineKm(latLngs) {
+            let km = 0;
+            for (let i = 0; i < latLngs.length - 1; i++) {
+                km += haversineKm(latLngs[i], latLngs[i + 1]);
+            }
+            return km;
+        }
+
+        function getCellKey(lat, lng) {
+            return `${Math.round(lat / CELL_DEG)}:${Math.round(lng / CELL_DEG)}`;
+        }
+
+        function addSegmentToGrid(coords, targetSet) {
+            let addedKm = 0;
+            for (let i = 1; i < coords.length; i++) {
+                const a = coords[i - 1];
+                const b = coords[i];
+                const distKm = haversineKm(a, b);
+                if (distKm <= 0 || distKm > 3) continue;
+                const distM = distKm * 1000;
+                const steps = Math.max(1, Math.ceil(distM / SAMPLE_M));
+                const stepKm = distKm / steps;
+                for (let k = 0; k < steps; k++) {
+                    const f = (k + 0.5) / steps;
+                    const lat = a[0] + (b[0] - a[0]) * f;
+                    const lng = a[1] + (b[1] - a[1]) * f;
+                    const key = getCellKey(lat, lng);
+                    if (!targetSet.has(key)) {
+                        targetSet.add(key);
+                        addedKm += stepKm;
+                    }
+                }
+            }
+            return addedKm;
+        }
+
+        function recomputeUniqueCoverage() {
+            visitedCells = new Set();
+            uniqueDistanceKm = 0;
+            savedRides.forEach(ride => {
+                if (ride && ride.length > 1) {
+                    uniqueDistanceKm += addSegmentToGrid(ride, visitedCells);
+                }
+            });
+        }
+
+        function updateStatsUI(liveNewKm = 0) {
+            const totalUniqueKm = uniqueDistanceKm + liveNewKm;
+            const coveragePct = Math.min(100, (totalUniqueKm / SG_TOTAL_ROAD_KM) * 100);
+
+            document.getElementById('stat-distance').innerText = `${totalUniqueKm.toFixed(2)} km`;
+            document.getElementById('stat-coverage').innerText = `${coveragePct.toFixed(2)}%`;
+        }
+
+        function renderSavedRides() {
+            recomputeUniqueCoverage();
+
+            if (usingGoogleMaps && gMap) {
+                gSavedPolylines.forEach(p => p.setMap(null));
+                gSavedPolylines = [];
+                savedRides.forEach(rideCoords => {
+                    if (rideCoords && rideCoords.length > 1) {
+                        const path = rideCoords.map(pt => ({ lat: pt[0], lng: pt[1] }));
+                        const glow = new google.maps.Polyline({
+                            path,
+                            strokeColor: '#f59e0b',
+                            strokeOpacity: 0.35,
+                            strokeWeight: 10,
+                            map: gMap
+                        });
+                        const core = new google.maps.Polyline({
+                            path,
+                            strokeColor: '#fde047',
+                            strokeOpacity: 1.0,
+                            strokeWeight: 4,
+                            map: gMap
+                        });
+                        gSavedPolylines.push(glow, core);
+                    }
+                });
+            } else if (lMap && lRidesGroup) {
+                lRidesGroup.clearLayers();
+                savedRides.forEach(rideCoords => {
+                    if (rideCoords && rideCoords.length > 1) {
+                        L.polyline(rideCoords, { color: '#f59e0b', weight: 10, opacity: 0.35, lineCap: 'round', lineJoin: 'round' }).addTo(lRidesGroup);
+                        L.polyline(rideCoords, { color: '#fde047', weight: 4, opacity: 1.0, lineCap: 'round', lineJoin: 'round' }).addTo(lRidesGroup);
+                    }
+                });
+            }
+            updateStatsUI(0);
+        }
+
+        function updateRiderPosition(latLng, pan = true) {
+            lastKnownLatLng = latLng;
+            if (usingGoogleMaps && gMap && gRiderMarker) {
+                const pos = { lat: latLng[0], lng: latLng[1] };
+                gRiderMarker.setPosition(pos);
+                if (pan) gMap.panTo(pos);
+            } else if (lMap && lRiderMarker) {
+                lRiderMarker.setLatLng(latLng);
+                if (pan) lMap.panTo(latLng, { animate: true });
+            }
+        }
+
+        function recenterMap() {
+            if (usingGoogleMaps && gMap) {
+                gMap.panTo({ lat: lastKnownLatLng[0], lng: lastKnownLatLng[1] });
+                gMap.setZoom(15);
+            } else if (lMap) {
+                lMap.invalidateSize();
+                lMap.flyTo(lastKnownLatLng, 15, { duration: 0.8 });
+            }
+        }
+
+        function drawActivePolyline(coords) {
+            if (usingGoogleMaps && gMap) {
+                const path = coords.map(pt => ({ lat: pt[0], lng: pt[1] }));
+                if (gActiveOutline) {
+                    gActiveOutline.setPath(path);
+                } else {
+                    gActiveOutline = new google.maps.Polyline({
+                        path,
+                        strokeColor: '#f59e0b',
+                        strokeOpacity: 0.4,
+                        strokeWeight: 10,
+                        map: gMap
+                    });
+                }
+                if (gActivePolyline) {
+                    gActivePolyline.setPath(path);
+                } else {
+                    gActivePolyline = new google.maps.Polyline({
+                        path,
+                        strokeColor: '#34d399',
+                        strokeOpacity: 1,
+                        strokeWeight: 4.5,
+                        map: gMap
+                    });
+                }
+                return;
+            }
+            if (!lMap) return;
+            if (lActiveOutline) {
+                lActiveOutline.setLatLngs(coords);
+            } else {
+                lActiveOutline = L.polyline(coords, { color: '#f59e0b', weight: 10, opacity: 0.4 }).addTo(lMap);
+            }
+            if (lActivePolyline) {
+                lActivePolyline.setLatLngs(coords);
+            } else {
+                lActivePolyline = L.polyline(coords, { color: '#34d399', weight: 4.5, opacity: 1 }).addTo(lMap);
+            }
+        }
+
+        function clearActivePolyline() {
+            if (gActiveOutline) { gActiveOutline.setMap(null); gActiveOutline = null; }
+            if (gActivePolyline) { gActivePolyline.setMap(null); gActivePolyline = null; }
+            if (lActiveOutline && lMap) { lMap.removeLayer(lActiveOutline); lActiveOutline = null; }
+            if (lActivePolyline && lMap) { lMap.removeLayer(lActivePolyline); lActivePolyline = null; }
+        }
+
+        // ==========================================
+        // 5. AUTOMATIC ROAD SNAPPING (GOOGLE ROADS + OSRM)
+        // ==========================================
+        async function snapToRoads(latLngs) {
+            if (!latLngs || latLngs.length < 2) return latLngs;
+
+            let sampled = latLngs;
+            if (latLngs.length > 60) {
+                const step = Math.ceil(latLngs.length / 60);
+                sampled = latLngs.filter((_, idx) => idx % step === 0 || idx === latLngs.length - 1);
+            }
+
+            if (googleApiKey) {
+                try {
+                    const pathParam = sampled.map(pt => `${pt[0]},${pt[1]}`).join('|');
+                    const gUrl = `https://roads.googleapis.com/v1/snapToRoads?path=${encodeURIComponent(pathParam)}&interpolate=true&key=${encodeURIComponent(googleApiKey)}`;
+                    const gRes = await fetch(gUrl);
+                    if (gRes.ok) {
+                        const gData = await gRes.json();
+                        if (gData.snappedPoints && gData.snappedPoints.length > 1) {
+                            return gData.snappedPoints.map(p => [p.location.latitude, p.location.longitude]);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Google Roads API fallback to OSRM:', err);
+                }
+            }
+
+            try {
+                const coordsString = sampled.map(pt => `${pt[1]},${pt[0]}`).join(';');
+                const radiuses = sampled.map(() => '25').join(';');
+                const url = `https://router.project-osrm.org/match/v1/driving/${coordsString}?geometries=geojson&overview=full&tidy=true&radiuses=${radiuses}`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.code === 'Ok' && data.matchings && data.matchings.length > 0) {
+                        const snapped = [];
+                        data.matchings.forEach(match => {
+                            match.geometry.coordinates.forEach(c => snapped.push([c[1], c[0]]));
+                        });
+                        if (snapped.length > 1) return snapped;
+                    }
+                }
+            } catch (err) {
+                console.warn('OSRM map-matching unavailable, keeping raw GPS:', err);
+            }
+
+            return latLngs;
+        }
+
+        // ==========================================
+        // 6. LIVE GPS RECORDING (WITH AUTO-CHECKPOINT)
+        // ==========================================
+        function toggleGPSRecording() {
+            if (isRecording) {
+                stopGPSRecording();
+            } else {
+                startGPSRecording();
+            }
+        }
+
+        function startGPSRecording(initialCoords = [], existingStart = Date.now()) {
+            if (isSimulating) stopSimulation();
+            if (!navigator.geolocation) {
+                showToast('GPS is not supported on this browser');
+                return;
+            }
+
+            isRecording = true;
+            currentRideCoords = initialCoords.slice();
+            draftStartTimestamp = existingStart;
+
+            const btn = document.getElementById('record-btn');
+            btn.className = 'flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-white shadow-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-red-500/60';
+            document.getElementById('record-dot').className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
+            document.getElementById('record-text').innerText = 'Stop & Save';
+
+            const badge = document.getElementById('status-badge');
+            badge.innerText = 'Recording';
+            badge.className = 'text-[10px] font-semibold bg-red-500/20 text-red-300 border border-red-500/40 px-2 py-0.5 rounded-full animate-pulse';
+
+            if (currentRideCoords.length > 0) {
+                drawActivePolyline(currentRideCoords);
+            }
+
+            const tempGrid = new Set(visitedCells);
+            let liveUniqueAddedKm = currentRideCoords.length > 1 ? addSegmentToGrid(currentRideCoords, tempGrid) : 0;
+            updateStatsUI(liveUniqueAddedKm);
+
+            watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const { latitude, longitude, speed, accuracy } = pos.coords;
+                    if (accuracy && accuracy > 60) return;
+
+                    const pt = [latitude, longitude];
+                    if (currentRideCoords.length > 0) {
+                        const prev = currentRideCoords[currentRideCoords.length - 1];
+                        const stepKm = haversineKm(prev, pt);
+                        if (stepKm < 0.004) return; // Filter GPS jitter < 4m
+                        liveUniqueAddedKm += addSegmentToGrid([prev, pt], tempGrid);
+                    }
+
+                    currentRideCoords.push(pt);
+                    persistActiveDraft(); // Save immediately after every new GPS coordinate!
+
+                    updateRiderPosition(pt, true);
+                    drawActivePolyline(currentRideCoords);
+                    updateStatsUI(liveUniqueAddedKm);
+
+                    const kmh = speed && speed > 0 ? Math.round(speed * 3.6) : 0;
+                    document.getElementById('stat-speed').innerText = `${kmh} km/h`;
+                },
+                (err) => {
+                    showToast('Waiting for clear GPS signal...');
+                    console.warn('GPS Error:', err);
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 1000,
+                    timeout: 10000
+                }
+            );
+        }
+
+        async function stopGPSRecording() {
+            isRecording = false;
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
+            const btn = document.getElementById('record-btn');
+            btn.className = 'flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-white shadow-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-red-400/30';
+            document.getElementById('record-dot').className = 'w-2.5 h-2.5 rounded-full bg-white';
+            document.getElementById('record-text').innerText = 'Record Ride';
+            document.getElementById('stat-speed').innerText = '0 km/h';
+
+            const badge = document.getElementById('status-badge');
+            badge.innerText = 'Saved';
+            badge.className = 'text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full';
+
+            const rawCoords = currentRideCoords.slice();
+            currentRideCoords = [];
+            clearActiveDraft();
+            clearActivePolyline();
+
+            if (rawCoords.length >= 2) {
+                showToast('Snapping ride to Singapore roads...');
+                const snapped = await snapToRoads(rawCoords);
+                savedRides.push(snapped);
+                localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(savedRides));
+                renderSavedRides();
+                showToast('Ride saved to device!');
+            } else {
+                renderSavedRides();
+                showToast('Ride too short to save');
+            }
+        }
+
+        // ==========================================
+        // 7. EAST COAST PARKWAY SIMULATION MODE
+        // ==========================================
+        const ECP_SIM_COORDS = [
+            [1.29429, 103.86595], [1.29519, 103.87033], [1.29543, 103.87346], [1.29550, 103.87587],
+            [1.29561, 103.87929], [1.29576, 103.88207], [1.29585, 103.88459], [1.29576, 103.88957],
+            [1.29565, 103.89206], [1.29602, 103.89435], [1.29706, 103.89713], [1.29835, 103.90055],
+            [1.29970, 103.90419], [1.30054, 103.90686], [1.30139, 103.90986], [1.30244, 103.91346],
+            [1.30342, 103.91700], [1.30408, 103.91932], [1.30475, 103.92166], [1.30566, 103.92498]
+        ];
+
+        function toggleGPSSimulation() {
+            if (isSimulating) {
+                stopSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+
+        function startSimulation() {
+            if (isRecording) stopGPSRecording();
+            isSimulating = true;
+            currentRideCoords = [];
+
+            document.getElementById('sim-icon').className = 'fa-solid fa-stop text-xs text-red-400';
+            document.getElementById('sim-text').innerText = 'Stop Sim';
+
+            const badge = document.getElementById('status-badge');
+            badge.innerText = 'Simulating';
+            badge.className = 'text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full';
+
+            let idx = 0;
+            const tempGrid = new Set(visitedCells);
+            let liveUniqueAddedKm = 0;
+
+            simInterval = setInterval(() => {
+                if (idx < ECP_SIM_COORDS.length) {
+                    const pt = ECP_SIM_COORDS[idx];
+                    if (currentRideCoords.length > 0) {
+                        const prev = currentRideCoords[currentRideCoords.length - 1];
+                        liveUniqueAddedKm += addSegmentToGrid([prev, pt], tempGrid);
+                    }
+                    currentRideCoords.push(pt);
+                    updateRiderPosition(pt, true);
+                    drawActivePolyline(currentRideCoords);
+                    updateStatsUI(liveUniqueAddedKm);
+                    document.getElementById('stat-speed').innerText = `${62 + Math.floor(Math.random() * 14)} km/h`;
+                    idx++;
+                } else {
+                    stopSimulation();
+                }
+            }, 450);
+        }
+
+        async function stopSimulation() {
+            isSimulating = false;
+            if (simInterval) {
+                clearInterval(simInterval);
+                simInterval = null;
+            }
+
+            document.getElementById('sim-icon').className = 'fa-solid fa-play text-xs';
+            document.getElementById('sim-text').innerText = 'Simulate';
+            document.getElementById('stat-speed').innerText = '0 km/h';
+
+            const badge = document.getElementById('status-badge');
+            badge.innerText = 'Saved';
+            badge.className = 'text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full';
+
+            const rawCoords = currentRideCoords.slice();
+            currentRideCoords = [];
+            clearActivePolyline();
+
+            if (rawCoords.length >= 2) {
+                const snapped = await snapToRoads(rawCoords);
+                savedRides.push(snapped);
+                localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(savedRides));
+                renderSavedRides();
+                showToast('Simulated ECP ride saved!');
+            }
+        }
+
+        // ==========================================
+        // 8. API KEY MODAL, TOAST & RESET CONTROLS
+        // ==========================================
+        function openApiKeyModal() {
+            const input = document.getElementById('apikey-input');
+            const removeBtn = document.getElementById('remove-key-btn');
+            input.value = googleApiKey;
+            if (googleApiKey) {
+                removeBtn.classList.remove('hidden');
+            } else {
+                removeBtn.classList.add('hidden');
+            }
+            document.getElementById('apikey-modal').classList.remove('hidden');
+        }
+
+        function closeApiKeyModal() {
+            document.getElementById('apikey-modal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const val = document.getElementById('apikey-input').value.trim();
+            if (!val) {
+                showToast('Please paste a valid Google Maps API key');
+                return;
+            }
+            googleApiKey = val;
+            localStorage.setItem(STORAGE_KEY_GMAPS, googleApiKey);
+            updateApiKeyButtonUI();
+            closeApiKeyModal();
+            loadGoogleMapsScript(googleApiKey);
+        }
+
+        function clearApiKey() {
+            googleApiKey = '';
+            localStorage.removeItem(STORAGE_KEY_GMAPS);
+            updateApiKeyButtonUI();
+            closeApiKeyModal();
+            gMap = null;
+            usingGoogleMaps = false;
+            initOpenSourceMap();
+            showToast('Switched back to free Open-Source map');
+        }
+
+        function showToast(message) {
+            const banner = document.getElementById('toast-banner');
+            document.getElementById('toast-msg').innerText = message;
+            banner.classList.remove('opacity-0');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                banner.classList.add('opacity-0');
+            }, 2600);
+        }
+
+        function openResetModal() {
+            const pct = Math.min(100, (uniqueDistanceKm / SG_TOTAL_ROAD_KM) * 100).toFixed(2);
+            document.getElementById('modal-pct-preview').innerText = `${pct}%`;
+            document.getElementById('reset-modal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('reset-modal').classList.add('hidden');
+        }
+
+        function confirmClearAllData() {
+            if (isRecording) stopGPSRecording();
+            if (isSimulating) stopSimulation();
+
+            localStorage.removeItem(STORAGE_KEY_RIDES);
+            clearActiveDraft();
+            uniqueDistanceKm = 0;
+            visitedCells = new Set();
+            savedRides = [];
+            currentRideCoords = [];
+
+            clearActivePolyline();
+            renderSavedRides();
+            closeResetModal();
+            showToast('All SG road progress reset to 0.00%');
+        }
+
+        // ==========================================
+        // 9. WINDOW LIFECYCLE HANDLERS
+        // ==========================================
+        window.addEventListener('load', bootstrapApp);
+        window.addEventListener('resize', () => {
+            if (lMap) lMap.invalidateSize();
+        });
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (lMap) lMap.invalidateSize();
+            }, 250);
+        });
+    </script>
+</body>
+</html>
